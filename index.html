@@ -1,0 +1,3032 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Saca provecho de la IA</title>
+<style>
+:root{
+  --bg:#070513; --panel:rgba(22,16,48,.72); --line:rgba(167,139,250,.30);
+  --cyan:#22d3ee; --violet:#a78bfa; --pink:#f472b6; --green:#4ade80; --yellow:#facc15; --red:#fb7185; --orange:#fb923c;
+  --text:#f3f0ff; --muted:#a59cc9;
+  --R:#f472b6; --T:#22d3ee; --C:#facc15; --F:#4ade80;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+  font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif}
+#net{position:fixed;inset:0;z-index:0}
+.glow{position:fixed;width:60vmax;height:60vmax;border-radius:50%;filter:blur(100px);opacity:.22;z-index:0;animation:float 20s ease-in-out infinite}
+.g1{background:var(--violet);top:-25vmax;left:-20vmax}
+.g2{background:var(--pink);bottom:-30vmax;right:-20vmax;animation-delay:-10s}
+@keyframes float{50%{transform:translate(8vmax,6vmax) scale(1.1)}}
+
+#top{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;gap:14px;padding:12px 22px;font-size:14px}
+#moment{padding:6px 14px;border-radius:999px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:1px solid currentColor;transition:.4s}
+#clock{margin-left:auto;font-family:Consolas,monospace;color:var(--muted);cursor:pointer;padding:6px 12px;border:1px solid var(--line);border-radius:10px}
+#clock.run{color:var(--green)}
+#count{font-family:Consolas,monospace;color:var(--muted)}
+#bar{position:fixed;bottom:0;left:0;height:4px;background:linear-gradient(90deg,var(--cyan),var(--violet),var(--pink));z-index:20;transition:width .6s cubic-bezier(.2,.8,.2,1);box-shadow:0 0 12px var(--violet)}
+#nav{position:fixed;bottom:16px;right:20px;z-index:20;display:flex;gap:8px}
+#nav button{width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--violet);font-size:20px;cursor:pointer;transition:.2s}
+#nav button:hover{background:var(--violet);color:#100}
+
+.slide{position:fixed;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:80px 6vw 70px;opacity:0;pointer-events:none;transform:translateX(60px) scale(.97);transition:opacity .6s, transform .7s cubic-bezier(.2,.8,.2,1)}
+.slide.active{opacity:1;pointer-events:auto;transform:none}
+.slide.prev{transform:translateX(-60px) scale(.97)}
+.in{opacity:0;transform:translateY(30px)}
+.slide.active .in{animation:up .7s cubic-bezier(.2,.8,.2,1) forwards}
+.slide.active .in:nth-child(2){animation-delay:.15s}.slide.active .in:nth-child(3){animation-delay:.3s}
+.slide.active .in:nth-child(4){animation-delay:.45s}.slide.active .in:nth-child(5){animation-delay:.6s}
+.slide.active .in:nth-child(6){animation-delay:.75s}.slide.active .in:nth-child(7){animation-delay:.9s}
+@keyframes up{to{opacity:1;transform:none}}
+
+h1{font-size:clamp(34px,6vw,84px);line-height:1.05;text-align:center;font-weight:800}
+h2{font-size:clamp(26px,4vw,54px);text-align:center;margin-bottom:22px;font-weight:800}
+p.lead{font-size:clamp(17px,2vw,26px);color:var(--muted);text-align:center;max-width:900px;line-height:1.45}
+.grad{background:linear-gradient(90deg,var(--cyan),var(--violet),var(--pink),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;background-size:300%;animation:shine 8s linear infinite}
+@keyframes shine{to{background-position:300%}}
+.tag{font-family:Consolas,monospace;color:var(--cyan);letter-spacing:.2em;font-size:14px;margin-bottom:14px;text-transform:uppercase}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:26px;backdrop-filter:blur(10px);box-shadow:0 10px 40px rgba(0,0,0,.4)}
+.btn{font:inherit;font-weight:700;font-size:17px;padding:12px 22px;border-radius:14px;border:1px solid var(--violet);background:transparent;color:var(--violet);cursor:pointer;transition:.2s}
+.btn:hover{background:var(--violet);color:#100;box-shadow:0 0 24px var(--violet)}
+.hint{font-size:14px;color:var(--muted);margin-top:18px;text-align:center}
+
+/* orb */
+.orb{width:170px;height:170px;position:relative;margin-bottom:26px}
+.orb .core{position:absolute;inset:30px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,var(--violet) 35%,#4c1d95 75%);box-shadow:0 0 60px var(--violet),0 0 120px rgba(244,114,182,.5);animation:pulse 2.6s ease-in-out infinite}
+.orb .ringo{position:absolute;inset:0;border-radius:50%;border:2px solid var(--cyan);border-color:var(--cyan) transparent var(--pink) transparent;animation:spin 4s linear infinite}
+.orb .ringo.r2{inset:12px;animation-duration:6s;animation-direction:reverse;border-color:transparent var(--violet) transparent var(--yellow)}
+.orb .eyes{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;gap:18px}
+.orb .eyes i{width:12px;height:20px;border-radius:6px;background:#1a0b3d;animation:blinkE 4s infinite}
+@keyframes pulse{50%{transform:scale(1.07)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes blinkE{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+.bubble{margin-top:22px;font-size:clamp(16px,1.8vw,22px);padding:14px 22px;border-radius:20px 20px 20px 4px;background:var(--panel);border:1px solid var(--line);min-height:1.5em;min-width:280px}
+.typing::after{content:"▌";color:var(--violet);animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* chips / tasks */
+.chips{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:22px;max-width:950px}
+.chip{padding:10px 18px;border-radius:999px;border:1px solid var(--line);background:var(--panel);font-size:18px;animation:bob 3s ease-in-out infinite}
+.chip:nth-child(2n){animation-delay:-1s}.chip:nth-child(3n){animation-delay:-2s}
+@keyframes bob{50%{transform:translateY(-8px)}}
+
+/* poll */
+.poll{display:flex;gap:40px;align-items:flex-end;height:270px;margin:16px 0}
+.col{display:flex;flex-direction:column;align-items:center;gap:10px;width:150px}
+.barv{width:110px;border-radius:14px 14px 4px 4px;height:4px;transition:height .6s cubic-bezier(.2,.8,.2,1)}
+.num{font-size:44px;font-weight:800;font-family:Consolas,monospace}
+.pollbtns{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+
+.comp{font-size:clamp(20px,2.4vw,32px);line-height:1.45;max-width:1050px;text-align:center}
+.comp b{color:var(--cyan)}
+
+/* tools */
+.tools{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:1050px;width:100%;margin-top:6px}
+.tool{text-align:center;padding:22px 12px}
+.tool .ic{width:64px;height:64px;border-radius:18px;margin:0 auto 12px;display:grid;place-items:center;font-size:32px;font-weight:900}
+.tool b{font-size:20px}.tool p{color:var(--muted);font-size:14px;margin-top:4px}
+.analogy{margin-top:24px;max-width:900px;text-align:center;font-size:clamp(18px,2vw,24px);line-height:1.45}
+
+/* flip cards */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:1050px;width:100%}
+.flip{perspective:900px;height:170px;cursor:pointer}
+.flip .inner{position:relative;width:100%;height:100%;transition:transform .7s;transform-style:preserve-3d}
+.flip.on .inner{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;text-align:center;border:1px solid var(--line)}
+.front{background:var(--panel)}
+.front .e{font-size:46px;margin-bottom:8px}
+.front .l{font-size:19px;font-weight:700}
+.back{background:linear-gradient(135deg,rgba(167,139,250,.28),rgba(34,211,238,.2));transform:rotateY(180deg);font-size:16px;line-height:1.4;font-style:italic}
+
+/* chat demo */
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:22px;max-width:1150px;width:100%}
+.chat{display:flex;flex-direction:column;gap:12px;min-height:330px}
+.chat .hd{font-weight:800;font-size:20px;display:flex;align-items:center;gap:10px}
+.msg{padding:12px 16px;border-radius:16px;font-size:16px;line-height:1.45;max-width:92%}
+.msg.me{align-self:flex-end;background:rgba(167,139,250,.22);border:1px solid var(--line);border-radius:16px 16px 4px 16px}
+.msg.ai{align-self:flex-start;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:16px 16px 16px 4px;white-space:pre-line;min-height:46px}
+.dots span{display:inline-block;width:8px;height:8px;margin:0 2px;border-radius:50%;background:var(--muted);animation:dot 1s infinite}
+.dots span:nth-child(2){animation-delay:.15s}.dots span:nth-child(3){animation-delay:.3s}
+@keyframes dot{50%{transform:translateY(-6px);opacity:.4}}
+.verdict{font-weight:800;margin-top:auto;opacity:0;transition:.5s}
+.verdict.on{opacity:1}
+
+/* formula */
+.formula{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:1150px;width:100%}
+.fx{text-align:center;padding:22px 14px;border-width:2px}
+.fx .L{font-size:clamp(46px,6vw,78px);font-weight:900;line-height:1}
+.fx b{display:block;font-size:22px;margin:6px 0}
+.fx p{color:var(--muted);font-size:15px}
+.example{margin-top:24px;max-width:1100px;font-size:clamp(17px,1.9vw,24px);line-height:1.6;text-align:center}
+.example span{padding:2px 6px;border-radius:8px;opacity:.15;transition:.6s}
+.example span.on{opacity:1}
+.sR{background:rgba(244,114,182,.2);color:var(--R)}.sT{background:rgba(34,211,238,.18);color:var(--T)}
+.sC{background:rgba(250,204,21,.16);color:var(--C)}.sF{background:rgba(74,222,128,.16);color:var(--F)}
+
+/* builder */
+.builder{display:grid;grid-template-columns:1fr 1fr;gap:20px;width:min(1150px,100%)}
+.fields{display:flex;flex-direction:column;gap:10px}
+.field{display:flex;align-items:center;gap:10px}
+.field .k{width:42px;height:42px;flex:none;border-radius:12px;display:grid;place-items:center;font-weight:900;font-size:20px;color:#100}
+.field input{flex:1;font:inherit;font-size:16px;padding:11px 14px;border-radius:12px;border:1px solid var(--line);background:rgba(0,0,0,.35);color:var(--text);outline:none;transition:.25s}
+.field input:focus{border-color:var(--violet);box-shadow:0 0 18px rgba(167,139,250,.35)}
+.out{font-size:clamp(16px,1.6vw,20px);line-height:1.6;min-height:150px}
+.out .ph{color:var(--muted);font-style:italic}
+.out span{border-radius:6px;padding:1px 4px}
+.qbar{height:14px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin:14px 0 8px}
+.qfill{height:100%;width:0;border-radius:999px;transition:width .5s,background .5s}
+.qlabel{font-weight:800;font-size:20px}
+.brow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.brow .btn{font-size:14px;padding:8px 14px}
+
+/* classify */
+.class-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:1150px;width:100%}
+.cl{padding:16px;text-align:center;transition:.4s;display:flex;flex-direction:column;justify-content:space-between}
+.cl .pw{font-size:clamp(15px,1.45vw,18px);margin-bottom:12px;line-height:1.4;font-style:italic}
+.cl .ops{display:flex;gap:10px;justify-content:center}
+.cl .ops button{font:inherit;font-weight:700;padding:8px 16px;border-radius:10px;cursor:pointer;background:transparent;transition:.2s}
+.b-weak{border:1px solid var(--red);color:var(--red)}.b-weak:hover{background:var(--red);color:#fff}
+.b-strong{border:1px solid var(--green);color:var(--green)}.b-strong:hover{background:var(--green);color:#100}
+.cl .why{font-size:14px;color:var(--muted);margin-top:8px;min-height:18px}
+.cl.right{border-color:var(--green);box-shadow:0 0 30px rgba(74,222,128,.3)}
+.cl.wrong{border-color:var(--red);animation:shake .4s 2}
+@keyframes shake{25%{transform:rotate(-2deg)}75%{transform:rotate(2deg)}}
+.score{font-size:24px;margin-top:18px;font-weight:700}
+
+/* timer */
+.ringwrap{display:flex;align-items:center;gap:28px;justify-content:center;width:100%}
+.ring{width:170px;height:170px;position:relative;flex:none}
+.ring svg{transform:rotate(-90deg)}
+.ring .t{position:absolute;inset:0;display:grid;place-items:center;font-family:Consolas,monospace;font-size:36px;font-weight:800}
+.ideas{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:14px;max-width:1000px}
+.ideas .chip{font-size:14px;padding:7px 14px;cursor:pointer;animation:none}
+.ideas .chip:hover{border-color:var(--violet);color:var(--violet)}
+
+/* responsible */
+.trio{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1100px;width:100%}
+.trio .panel{text-align:center;padding:30px 20px}
+.trio .e{font-size:62px;display:inline-block;animation:bob 3s ease-in-out infinite}
+.trio .panel:nth-child(2) .e{animation-delay:-1s}.trio .panel:nth-child(3) .e{animation-delay:-2s}
+.trio h3{font-size:24px;margin:10px 0 8px}
+.trio p{color:var(--muted);font-size:17px;line-height:1.45}
+
+/* quiz */
+.quiz{width:min(900px,100%);text-align:center}
+.qn{font-family:Consolas,monospace;color:var(--cyan);margin-bottom:10px}
+.qq{font-size:clamp(22px,2.8vw,36px);font-weight:700;margin-bottom:26px;min-height:2.6em}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.opt{font:inherit;font-size:19px;padding:18px;border-radius:16px;border:1px solid var(--line);background:var(--panel);color:var(--text);cursor:pointer;transition:.25s}
+.opt:hover{border-color:var(--violet);transform:translateY(-3px)}
+.opt.ok{background:rgba(74,222,128,.18);border-color:var(--green)}
+.opt.bad{background:rgba(251,113,133,.18);border-color:var(--red);animation:shake .4s 2}
+.opt:nth-child(1){--c:var(--R)}.opt:nth-child(2){--c:var(--T)}.opt:nth-child(3){--c:var(--C)}.opt:nth-child(4){--c:var(--F)}
+.opt::before{content:"";display:inline-block;width:14px;height:14px;border-radius:4px;background:var(--c);margin-right:10px}
+
+.keys{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:1100px;width:100%}
+.keys .panel{text-align:center;padding:24px 14px}
+.keys .L{font-size:56px;font-weight:900}.keys h3{font-size:22px;margin:4px 0}.keys p{color:var(--muted);font-size:15px}
+.homework{margin-top:24px;font-size:20px;text-align:center;max-width:950px;line-height:1.45}
+
+.feel{display:flex;gap:22px;flex-wrap:wrap;justify-content:center}
+.fb{font-size:64px;background:var(--panel);border:1px solid var(--line);border-radius:24px;width:130px;height:150px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:.2s;color:var(--text)}
+.fb span{font-size:30px;font-weight:800;font-family:Consolas,monospace;margin-top:6px}
+.fb:hover{transform:translateY(-6px) scale(1.05);border-color:var(--violet)}
+.pop{position:fixed;font-size:40px;pointer-events:none;z-index:50;animation:pop 1.4s ease-out forwards}
+@keyframes pop{to{transform:translateY(-200px) scale(1.6);opacity:0}}
+canvas#confetti{position:fixed;inset:0;z-index:40;pointer-events:none}
+.toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);background:var(--green);color:#100;font-weight:800;padding:12px 22px;border-radius:12px;z-index:60;opacity:0;transition:.3s}
+.toast.on{opacity:1}
+
+
+
+/* quiz en vivo */
+.live{width:min(1150px,100%);display:flex;flex-direction:column;align-items:center;gap:16px}
+.lobby{display:grid;grid-template-columns:auto 1fr;gap:30px;align-items:center;width:100%}
+.qrbox{background:#fff;border-radius:22px;padding:14px;width:280px;height:280px;display:grid;place-items:center;box-shadow:0 0 0 6px var(--violet),0 0 60px rgba(167,139,250,.6)}
+.qrbox svg{width:100%;height:100%}
+.qrbox .empty{color:#4c1d95;font-weight:700;text-align:center;font-size:15px}
+.url{font-family:Consolas,monospace;color:var(--cyan);font-size:clamp(16px,1.8vw,22px);word-break:break-all}
+.pcount{font-size:clamp(40px,5vw,64px);font-weight:900;color:var(--yellow);font-family:Consolas,monospace}
+.names{display:flex;flex-wrap:wrap;gap:8px;max-height:150px;overflow:auto}
+.names span{padding:6px 12px;border-radius:999px;background:rgba(167,139,250,.2);border:1px solid var(--line);font-size:15px;animation:popin .4s cubic-bezier(.2,1.6,.4,1)}
+@keyframes popin{from{transform:scale(0)}to{transform:scale(1)}}
+.lq{font-size:clamp(22px,3vw,40px);font-weight:800;text-align:center}
+.lhead{display:flex;align-items:center;justify-content:space-between;width:100%;gap:16px}
+.lcount{font-family:Consolas,monospace;font-size:20px;color:var(--muted)}
+.lcount b{color:var(--yellow);font-size:28px}
+.ltime{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;font-size:34px;font-weight:900;font-family:Consolas,monospace;border:5px solid var(--violet);flex:none}
+.lopts{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%}
+.lo{position:relative;border-radius:16px;padding:18px 18px;font-size:clamp(16px,1.8vw,22px);font-weight:800;color:#fff;display:flex;align-items:center;gap:12px;overflow:hidden;min-height:70px;transition:opacity .4s}
+.lo .sh{width:26px;height:26px;background:#fff;flex:none}
+.lo0{background:#e21b3c}.lo0 .sh{clip-path:polygon(50% 0,100% 100%,0 100%)}
+.lo1{background:#1368ce}.lo1 .sh{transform:rotate(45deg) scale(.8)}
+.lo2{background:#d89e00}.lo2 .sh{border-radius:50%}
+.lo3{background:#26890c}
+.lo .cnt{margin-left:auto;font-family:Consolas,monospace;font-size:26px}
+.lo .fillb{position:absolute;left:0;bottom:0;height:6px;background:rgba(255,255,255,.85);width:0;transition:width .8s cubic-bezier(.2,.8,.2,1)}
+.lo.dim{opacity:.3}.lo.win{box-shadow:0 0 0 4px #fff,0 0 30px rgba(255,255,255,.6)}
+.top5{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.top5 div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 14px;font-size:16px}
+.top5 b{color:var(--yellow);font-family:Consolas,monospace}
+.podium{display:flex;align-items:flex-end;gap:18px;justify-content:center;margin-top:10px}
+.pod{display:flex;flex-direction:column;align-items:center;gap:8px}
+.pod .bar{width:150px;border-radius:14px 14px 0 0;display:grid;place-items:start center;padding-top:10px;font-size:40px;font-weight:900;color:#100;transform-origin:bottom;animation:grow 1s cubic-bezier(.2,.8,.2,1) both}
+.pod .nm{font-size:22px;font-weight:800}.pod .pt{font-family:Consolas,monospace;color:var(--muted)}
+@keyframes grow{from{transform:scaleY(0)}}
+.lbtns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+@media (max-width:860px){.lobby{grid-template-columns:1fr;justify-items:center}.lopts{grid-template-columns:1fr}}
+
+@media (max-width:860px){
+  .tools,.formula,.keys{grid-template-columns:repeat(2,1fr)}
+  .cards,.class-grid,.trio,.vs,.builder,.opts{grid-template-columns:1fr}
+  .ringwrap{flex-direction:column}
+  .slide{justify-content:flex-start;overflow-y:auto}
+}
+</style>
+</head>
+<body>
+<canvas id="net"></canvas>
+<div class="glow g1"></div><div class="glow g2"></div>
+<canvas id="confetti"></canvas>
+<div class="toast" id="toast">¡Copiado! Pégalo en ChatGPT o Gemini</div>
+
+<div id="top">
+  <span id="moment">Inicio</span>
+  <span id="count">1 / 16</span>
+  <span id="clock" title="Clic para iniciar o pausar el cronómetro de la clase">⏱ 00:00</span>
+</div>
+
+<!-- 1 PORTADA -->
+<section class="slide" data-m="Inicio">
+  <div class="orb in"><div class="ringo"></div><div class="ringo r2"></div><div class="core"></div><div class="eyes"><i></i><i></i></div></div>
+  <div class="tag in">Práctica docente · Ingeniería en Informática</div>
+  <h1 class="in"><span class="grad">Saca provecho de la IA</span></h1>
+  <p class="lead in" style="margin-top:12px">Intégrala en tu día a día</p>
+  <div class="bubble in"><span class="typing" id="typing"></span></div>
+</section>
+
+<!-- 2 PREGUNTA MOTIVADORA -->
+<section class="slide" data-m="Inicio">
+  <div class="tag in">Pregunta para pensar</div>
+  <h2 class="in">¿Qué le pedirías a un asistente <span class="grad">gratis</span><br>que trabaja para ti las 24 horas?</h2>
+  <div class="chips in">
+    <div class="chip">📧 Escribir correos</div><div class="chip">📝 Planificar clases</div><div class="chip">📚 Resumir lecturas</div>
+    <div class="chip">🍽️ Menú de la semana</div><div class="chip">💡 Ideas creativas</div><div class="chip">🌎 Traducir</div><div class="chip">📊 Organizar mi agenda</div>
+  </div>
+  <p class="lead in" style="margin-top:26px">Ese asistente ya existe… y probablemente lo tienes en tu celular. 📱</p>
+  <p class="hint in">Escribe en el chat: ¿qué tarea te gustaría que alguien hiciera por ti?</p>
+</section>
+
+<!-- 3 ENCUESTA -->
+<section class="slide" data-m="Inicio">
+  <div class="tag in">Encuesta rápida</div>
+  <h2 class="in">¿Has usado alguna vez una <span class="grad">herramienta de IA</span>?</h2>
+  <div class="poll in">
+    <div class="col"><div class="num" id="nSi" style="color:var(--green)">0</div><div class="barv" id="bSi" style="background:linear-gradient(var(--green),#166534)"></div><b style="font-size:22px">Sí 🙋</b></div>
+    <div class="col"><div class="num" id="nNo" style="color:var(--pink)">0</div><div class="barv" id="bNo" style="background:linear-gradient(var(--pink),#831843)"></div><b style="font-size:22px">Todavía no 🤷</b></div>
+  </div>
+  <div class="pollbtns in">
+    <button class="btn" style="border-color:var(--green);color:var(--green)" onclick="vote('Si')">+1 Sí</button>
+    <button class="btn" style="border-color:var(--pink);color:var(--pink)" onclick="vote('No')">+1 Todavía no</button>
+    <button class="btn" onclick="vote('reset')">↺</button>
+  </div>
+  <p class="hint in">Los participantes responden en el chat y el maestro suma los votos aquí.</p>
+</section>
+
+<!-- 4 COMPETENCIA -->
+<section class="slide" data-m="Inicio">
+  <div class="tag in">Lo que lograrás hoy</div>
+  <h2 class="in">🎯 Competencia</h2>
+  <div class="panel comp in"><b>Redacta</b> instrucciones claras (<b>prompts</b>) para asistentes de inteligencia artificial como ChatGPT, Gemini o Copilot, aplicando la fórmula <b>Rol, Tarea, Contexto y Formato</b>, de manera que obtenga respuestas útiles para tareas cotidianas y laborales.</div>
+</section>
+
+<!-- 5 QUÉ ES -->
+<section class="slide" data-m="Desarrollo">
+  <div class="tag in">¿Qué es?</div>
+  <h2 class="in">Un asistente de IA es un <span class="grad">chat que te ayuda</span></h2>
+  <div class="tools in">
+    <div class="panel tool"><div class="ic" style="background:linear-gradient(135deg,#10a37f,#0d6e57)">💬</div><b>ChatGPT</b><p>chatgpt.com</p></div>
+    <div class="panel tool"><div class="ic" style="background:linear-gradient(135deg,#4285f4,#a142f4)">✦</div><b>Gemini</b><p>gemini.google.com</p></div>
+    <div class="panel tool"><div class="ic" style="background:linear-gradient(135deg,#0ea5e9,#22c55e)">◆</div><b>Copilot</b><p>copilot.microsoft.com</p></div>
+    <div class="panel tool"><div class="ic" style="background:linear-gradient(135deg,#0866ff,#a855f7)">◯</div><b>Meta AI</b><p>dentro de WhatsApp</p></div>
+  </div>
+  <div class="panel analogy in">🧑‍💼 Imagínalo como un <b style="color:var(--yellow)">practicante muy rápido</b>: sabe de muchos temas, pero <b style="color:var(--cyan)">solo hace bien su trabajo si le das instrucciones claras</b>.</div>
+</section>
+
+<!-- 6 USOS -->
+<section class="slide" data-m="Desarrollo">
+  <div class="tag in">Usos en el día a día · toca cada tarjeta</div>
+  <h2 class="in">¿Para qué la puedo usar? 🤔</h2>
+  <div class="cards in">
+    <div class="flip"><div class="inner"><div class="face front"><div class="e">📧</div><div class="l">Redactar mensajes</div></div><div class="face back">"Escribe un correo formal para pedir un permiso el viernes."</div></div></div>
+    <div class="flip"><div class="inner"><div class="face front"><div class="e">📚</div><div class="l">Resumir textos</div></div><div class="face back">"Resume este documento en 5 puntos clave."</div></div></div>
+    <div class="flip"><div class="inner"><div class="face front"><div class="e">🗓️</div><div class="l">Planificar</div></div><div class="face back">"Organiza mi semana con estas 8 tareas y sus fechas."</div></div></div>
+    <div class="flip"><div class="inner"><div class="face front"><div class="e">💡</div><div class="l">Generar ideas</div></div><div class="face back">"Dame 5 dinámicas para iniciar una clase con adultos."</div></div></div>
+    <div class="flip"><div class="inner"><div class="face front"><div class="e">🧠</div><div class="l">Explicar algo difícil</div></div><div class="face back">"Explícame qué es la inflación como si tuviera 12 años."</div></div></div>
+    <div class="flip"><div class="inner"><div class="face front"><div class="e">🌎</div><div class="l">Traducir y corregir</div></div><div class="face back">"Corrige la ortografía de este texto sin cambiar mi estilo."</div></div></div>
+  </div>
+</section>
+
+<!-- 7 DEMO VAGO VS CLARO -->
+<section class="slide" data-m="Desarrollo">
+  <div class="tag in">Demostración</div>
+  <h2 class="in">La misma IA… <span class="grad">dos resultados distintos</span></h2>
+  <div class="vs in">
+    <div class="panel chat" id="chatA">
+      <div class="hd">😕 Instrucción vaga</div>
+      <div class="msg me">Hazme un mensaje para los padres.</div>
+      <div class="msg ai"></div>
+      <div class="verdict" style="color:var(--red)">❌ Genérico: no sirve sin muchos cambios.</div>
+    </div>
+    <div class="panel chat" id="chatB">
+      <div class="hd">🤩 Instrucción clara</div>
+      <div class="msg me">Actúa como maestro de 4.º grado. Escribe un mensaje de WhatsApp amable para los padres recordando la reunión del viernes a las 4:00 p. m. sobre las notas. Máximo 4 líneas.</div>
+      <div class="msg ai"></div>
+      <div class="verdict" style="color:var(--green)">✅ Listo para enviar.</div>
+    </div>
+  </div>
+  <div class="in" style="margin-top:16px"><button class="btn" onclick="runChats()">▶ Enviar a la IA</button></div>
+</section>
+
+<!-- 8 FORMULA -->
+<section class="slide" data-m="Desarrollo">
+  <div class="tag in">El secreto</div>
+  <h2 class="in">La fórmula del buen prompt: <span class="grad">R · T · C · F</span></h2>
+  <div class="formula">
+    <div class="panel fx in" style="border-color:var(--R)"><div class="L" style="color:var(--R)">R</div><b>Rol</b><p>¿Quién quieres que sea?</p></div>
+    <div class="panel fx in" style="border-color:var(--T)"><div class="L" style="color:var(--T)">T</div><b>Tarea</b><p>¿Qué necesitas que haga?</p></div>
+    <div class="panel fx in" style="border-color:var(--C)"><div class="L" style="color:var(--C)">C</div><b>Contexto</b><p>¿Para quién o para qué es?</p></div>
+    <div class="panel fx in" style="border-color:var(--F)"><div class="L" style="color:var(--F)">F</div><b>Formato</b><p>¿Cómo lo quieres recibir?</p></div>
+  </div>
+  <div class="panel example" id="example"><span class="sR">Actúa como un maestro de matemáticas.</span> <span class="sT">Crea 5 problemas de fracciones</span> <span class="sC">para estudiantes de 5.º grado que apenas comienzan el tema,</span> <span class="sF">en una lista numerada con las respuestas al final.</span></div>
+  <p class="hint">Pulsa → para iluminar cada parte del ejemplo</p>
+</section>
+
+<!-- 9 CONSTRUCTOR -->
+<section class="slide" data-m="Desarrollo">
+  <div class="tag in">Construyamos uno juntos</div>
+  <h2 class="in">🛠️ Constructor de prompts</h2>
+  <div class="builder in" data-builder>
+    <div class="panel fields">
+      <div class="field"><div class="k" style="background:var(--R)">R</div><input data-f="R" placeholder="Rol: Actúa como un orientador escolar…"></div>
+      <div class="field"><div class="k" style="background:var(--T)">T</div><input data-f="T" placeholder="Tarea: Crea una charla de 10 minutos…"></div>
+      <div class="field"><div class="k" style="background:var(--C)">C</div><input data-f="C" placeholder="Contexto: para estudiantes de secundaria…"></div>
+      <div class="field"><div class="k" style="background:var(--F)">F</div><input data-f="F" placeholder="Formato: en 5 puntos cortos…"></div>
+      <div class="brow"><button class="btn" data-ex="0">Ejemplo: docente</button><button class="btn" data-ex="1">Ejemplo: hogar</button><button class="btn" data-ex="2">Ejemplo: oficina</button><button class="btn" data-clear>↺ Limpiar</button></div>
+    </div>
+    <div class="panel">
+      <div style="color:var(--muted);font-size:14px;margin-bottom:8px">Tu prompt:</div>
+      <div class="out"><span class="ph">Llena los campos y mira cómo se arma tu instrucción…</span></div>
+      <div class="qbar"><div class="qfill"></div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div class="qlabel">—</div><button class="btn" data-copy style="font-size:14px;padding:8px 14px">📋 Copiar</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- 10 CLASIFICAR -->
+<section class="slide" data-m="Práctica">
+  <div class="tag in">Actividad 1 · ¡a jugar!</div>
+  <h2 class="in">¿Vaga o clara? 🕵️</h2>
+  <div class="class-grid in" id="classGrid"></div>
+  <div class="score in" id="score">Aciertos: 0 / 6</div>
+</section>
+
+<!-- 11 TU TURNO -->
+<section class="slide" data-m="Práctica">
+  <div class="tag in">Actividad 2 · tu turno</div>
+  <h2 class="in" style="margin-bottom:14px">✍️ Crea tu prompt y pruébalo en una IA</h2>
+  <div class="ringwrap in">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+      <div class="ring"><svg width="170" height="170"><circle cx="85" cy="85" r="72" stroke="rgba(255,255,255,.1)" stroke-width="12" fill="none"/><circle id="ringC" cx="85" cy="85" r="72" stroke="url(#rg)" stroke-width="12" fill="none" stroke-linecap="round" stroke-dasharray="452" stroke-dashoffset="0"/><defs><linearGradient id="rg"><stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="#f472b6"/></linearGradient></defs></svg><div class="t" id="ringT">3:00</div></div>
+      <div style="display:flex;gap:8px"><button class="btn" onclick="timer.toggle()" id="tBtn" style="font-size:14px;padding:8px 14px">▶ Iniciar</button><button class="btn" onclick="timer.reset()" style="font-size:14px;padding:8px 14px">↺</button></div>
+    </div>
+    <div class="builder" data-builder style="grid-template-columns:1fr;width:min(720px,100%);gap:12px">
+      <div class="panel fields" style="padding:18px">
+        <div class="field"><div class="k" style="background:var(--R)">R</div><input data-f="R" placeholder="Rol"></div>
+        <div class="field"><div class="k" style="background:var(--T)">T</div><input data-f="T" placeholder="Tarea"></div>
+        <div class="field"><div class="k" style="background:var(--C)">C</div><input data-f="C" placeholder="Contexto"></div>
+        <div class="field"><div class="k" style="background:var(--F)">F</div><input data-f="F" placeholder="Formato"></div>
+      </div>
+      <div class="panel" style="padding:18px">
+        <div class="out" style="min-height:70px"><span class="ph">Tu prompt aparecerá aquí…</span></div>
+        <div class="qbar"><div class="qfill"></div></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="qlabel">—</div><button class="btn" data-copy style="font-size:14px;padding:8px 14px">📋 Copiar</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="ideas in">
+    <span style="color:var(--muted);font-size:14px;align-self:center">Ideas:</span>
+    <span class="chip">Una actividad para mi clase</span><span class="chip">Un comunicado a los padres</span><span class="chip">Una rúbrica sencilla</span><span class="chip">Mi menú de la semana</span><span class="chip">Un correo a mi jefe</span>
+  </div>
+</section>
+
+<!-- 12 USO RESPONSABLE -->
+<section class="slide" data-m="Cierre">
+  <div class="tag in">Úsala con cabeza</div>
+  <h2 class="in">🛡️ Tres reglas de uso responsable</h2>
+  <div class="trio">
+    <div class="panel in"><div class="e">🔍</div><h3>Verifica</h3><p>La IA puede equivocarse o inventar datos. Revisa fechas, cifras y nombres antes de usarlos.</p></div>
+    <div class="panel in"><div class="e">🔒</div><h3>Protege tus datos</h3><p>Nunca compartas contraseñas, cédulas, datos de tus estudiantes ni información confidencial.</p></div>
+    <div class="panel in"><div class="e">🧑‍⚖️</div><h3>Tú decides</h3><p>La IA es tu asistente, no tu jefe. Ajusta su respuesta con tu criterio y tu estilo.</p></div>
+  </div>
+</section>
+
+<!-- QUIZ EN VIVO -->
+<section class="slide" data-m="Cierre">
+  <div class="tag in">Quiz en vivo · desde tu celular</div>
+  <div class="live in" id="live">
+    <!-- lobby -->
+    <div id="lvLobby" style="width:100%">
+      <h2 style="margin-bottom:18px">📱 ¡Escanea y únete al <span class="grad">quiz en vivo</span>!</h2>
+      <div class="lobby">
+        <div class="qrbox" id="lvQr"><div class="empty">Publica la presentación en internet para generar el QR</div></div>
+        <div class="panel" style="display:flex;flex-direction:column;gap:12px">
+          <div style="color:var(--muted)">O entra desde tu celular a:</div>
+          <div class="url" id="lvUrl">—</div>
+          <div style="display:flex;align-items:baseline;gap:12px"><div class="pcount" id="lvN">0</div><div style="color:var(--muted);font-size:18px">participantes conectados</div></div>
+          <div class="names" id="lvNames"></div>
+          <div class="lbtns" style="justify-content:flex-start"><button class="btn" onclick="LQ.start()">▶ Iniciar quiz</button><button class="btn" onclick="LQ.reset()" title="Empezar una partida nueva">↺ Nueva partida</button></div>
+          <div id="lvMsg" style="font-size:14px;color:var(--muted)"></div>
+        </div>
+      </div>
+    </div>
+    <!-- pregunta / resultados -->
+    <div id="lvGame" style="display:none;width:100%;flex-direction:column;align-items:center;gap:16px">
+      <div class="lhead"><div class="lcount" id="lvNum"></div><div class="ltime" id="lvTime">20</div><div class="lcount">Respuestas: <b id="lvAns">0</b> / <span id="lvTot">0</span></div></div>
+      <div class="lq" id="lvQ"></div>
+      <div class="lopts" id="lvOpts"></div>
+      <div class="top5" id="lvTop"></div>
+      <div class="lbtns"><button class="btn" id="lvReveal" onclick="LQ.reveal()">Mostrar resultados</button><button class="btn" id="lvNext" onclick="LQ.next()" style="display:none">Siguiente ▶</button></div>
+    </div>
+    <!-- podio -->
+    <div id="lvEnd" style="display:none;flex-direction:column;align-items:center;gap:10px">
+      <h2 style="margin-bottom:4px">🏆 ¡Podio final!</h2>
+      <div class="podium" id="lvPod"></div>
+      <div class="top5" id="lvRest" style="margin-top:14px"></div>
+      <div class="lbtns" style="margin-top:10px"><button class="btn" onclick="LQ.reset()">↺ Jugar otra vez</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- 13 QUIZ -->
+<section class="slide" data-m="Cierre">
+  <div class="tag in">Plan B · cuestionario sin internet</div>
+  <div class="quiz in">
+    <div class="qn" id="qn">Pregunta 1 de 3</div>
+    <div class="qq" id="qq"></div>
+    <div class="opts" id="opts"></div>
+    <div class="score" id="qscore"></div>
+  </div>
+</section>
+
+<!-- 14 RESUMEN -->
+<section class="slide" data-m="Cierre">
+  <div class="tag in">Para recordar</div>
+  <h2 class="in">Antes de pedirle algo a la IA, piensa en… ✨</h2>
+  <div class="keys">
+    <div class="panel in"><div class="L" style="color:var(--R)">R</div><h3>Rol</h3><p>¿Quién debe ser?</p></div>
+    <div class="panel in"><div class="L" style="color:var(--T)">T</div><h3>Tarea</h3><p>¿Qué debe hacer?</p></div>
+    <div class="panel in"><div class="L" style="color:var(--C)">C</div><h3>Contexto</h3><p>¿Para quién o para qué?</p></div>
+    <div class="panel in"><div class="L" style="color:var(--F)">F</div><h3>Formato</h3><p>¿Cómo lo quiero?</p></div>
+  </div>
+  <div class="panel homework in">📝 <b>Tarea:</b> esta semana usa la fórmula RTCF para resolver una tarea real de tu trabajo con ChatGPT, Gemini o Copilot. ¿Cuánto tiempo te ahorraste?</div>
+</section>
+
+<!-- 15 SENTIMIENTOS -->
+<section class="slide" data-m="Cierre">
+  <div class="tag in">Tu opinión cuenta</div>
+  <h2 class="in">¿Cómo te sentiste en la clase?</h2>
+  <div class="feel in">
+    <button class="fb" data-e="🤩">🤩<span>0</span></button>
+    <button class="fb" data-e="😊">😊<span>0</span></button>
+    <button class="fb" data-e="🤔">🤔<span>0</span></button>
+    <button class="fb" data-e="😴">😴<span>0</span></button>
+  </div>
+  <p class="lead in" style="margin-top:30px">Y en una frase: <b style="color:var(--text)">¿para qué usarás la IA esta semana?</b></p>
+</section>
+
+<!-- 16 GRACIAS -->
+<section class="slide" data-m="Cierre">
+  <div class="orb in"><div class="ringo"></div><div class="ringo r2"></div><div class="core"></div><div class="eyes"><i></i><i></i></div></div>
+  <h1 class="in"><span class="grad">¡Gracias!</span></h1>
+  <p class="lead in" style="margin-top:16px">La IA no te reemplaza: <b style="color:var(--text)">te potencia</b> 🚀</p>
+  <p class="hint in">Aguiler Trinidad · Habilitación Docente</p>
+</section>
+
+<div id="nav"><button onclick="go(-1)" aria-label="Anterior">‹</button><button onclick="go(1)" aria-label="Siguiente">›</button><button onclick="fs()" aria-label="Pantalla completa">⛶</button></div>
+<div id="bar"></div>
+
+<script src="quiz-config.js"></script>
+<script>
+/* qrcode-generator 1.4.4 · (c) Kazuhiko Arase · MIT License */
+//---------------------------------------------------------------------
+//
+// QR Code Generator for JavaScript
+//
+// Copyright (c) 2009 Kazuhiko Arase
+//
+// URL: http://www.d-project.com/
+//
+// Licensed under the MIT license:
+//  http://www.opensource.org/licenses/mit-license.php
+//
+// The word 'QR Code' is registered trademark of
+// DENSO WAVE INCORPORATED
+//  http://www.denso-wave.com/qrcode/faqpatent-e.html
+//
+//---------------------------------------------------------------------
+
+var qrcode = function() {
+
+  //---------------------------------------------------------------------
+  // qrcode
+  //---------------------------------------------------------------------
+
+  /**
+   * qrcode
+   * @param typeNumber 1 to 40
+   * @param errorCorrectionLevel 'L','M','Q','H'
+   */
+  var qrcode = function(typeNumber, errorCorrectionLevel) {
+
+    var PAD0 = 0xEC;
+    var PAD1 = 0x11;
+
+    var _typeNumber = typeNumber;
+    var _errorCorrectionLevel = QRErrorCorrectionLevel[errorCorrectionLevel];
+    var _modules = null;
+    var _moduleCount = 0;
+    var _dataCache = null;
+    var _dataList = [];
+
+    var _this = {};
+
+    var makeImpl = function(test, maskPattern) {
+
+      _moduleCount = _typeNumber * 4 + 17;
+      _modules = function(moduleCount) {
+        var modules = new Array(moduleCount);
+        for (var row = 0; row < moduleCount; row += 1) {
+          modules[row] = new Array(moduleCount);
+          for (var col = 0; col < moduleCount; col += 1) {
+            modules[row][col] = null;
+          }
+        }
+        return modules;
+      }(_moduleCount);
+
+      setupPositionProbePattern(0, 0);
+      setupPositionProbePattern(_moduleCount - 7, 0);
+      setupPositionProbePattern(0, _moduleCount - 7);
+      setupPositionAdjustPattern();
+      setupTimingPattern();
+      setupTypeInfo(test, maskPattern);
+
+      if (_typeNumber >= 7) {
+        setupTypeNumber(test);
+      }
+
+      if (_dataCache == null) {
+        _dataCache = createData(_typeNumber, _errorCorrectionLevel, _dataList);
+      }
+
+      mapData(_dataCache, maskPattern);
+    };
+
+    var setupPositionProbePattern = function(row, col) {
+
+      for (var r = -1; r <= 7; r += 1) {
+
+        if (row + r <= -1 || _moduleCount <= row + r) continue;
+
+        for (var c = -1; c <= 7; c += 1) {
+
+          if (col + c <= -1 || _moduleCount <= col + c) continue;
+
+          if ( (0 <= r && r <= 6 && (c == 0 || c == 6) )
+              || (0 <= c && c <= 6 && (r == 0 || r == 6) )
+              || (2 <= r && r <= 4 && 2 <= c && c <= 4) ) {
+            _modules[row + r][col + c] = true;
+          } else {
+            _modules[row + r][col + c] = false;
+          }
+        }
+      }
+    };
+
+    var getBestMaskPattern = function() {
+
+      var minLostPoint = 0;
+      var pattern = 0;
+
+      for (var i = 0; i < 8; i += 1) {
+
+        makeImpl(true, i);
+
+        var lostPoint = QRUtil.getLostPoint(_this);
+
+        if (i == 0 || minLostPoint > lostPoint) {
+          minLostPoint = lostPoint;
+          pattern = i;
+        }
+      }
+
+      return pattern;
+    };
+
+    var setupTimingPattern = function() {
+
+      for (var r = 8; r < _moduleCount - 8; r += 1) {
+        if (_modules[r][6] != null) {
+          continue;
+        }
+        _modules[r][6] = (r % 2 == 0);
+      }
+
+      for (var c = 8; c < _moduleCount - 8; c += 1) {
+        if (_modules[6][c] != null) {
+          continue;
+        }
+        _modules[6][c] = (c % 2 == 0);
+      }
+    };
+
+    var setupPositionAdjustPattern = function() {
+
+      var pos = QRUtil.getPatternPosition(_typeNumber);
+
+      for (var i = 0; i < pos.length; i += 1) {
+
+        for (var j = 0; j < pos.length; j += 1) {
+
+          var row = pos[i];
+          var col = pos[j];
+
+          if (_modules[row][col] != null) {
+            continue;
+          }
+
+          for (var r = -2; r <= 2; r += 1) {
+
+            for (var c = -2; c <= 2; c += 1) {
+
+              if (r == -2 || r == 2 || c == -2 || c == 2
+                  || (r == 0 && c == 0) ) {
+                _modules[row + r][col + c] = true;
+              } else {
+                _modules[row + r][col + c] = false;
+              }
+            }
+          }
+        }
+      }
+    };
+
+    var setupTypeNumber = function(test) {
+
+      var bits = QRUtil.getBCHTypeNumber(_typeNumber);
+
+      for (var i = 0; i < 18; i += 1) {
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+        _modules[Math.floor(i / 3)][i % 3 + _moduleCount - 8 - 3] = mod;
+      }
+
+      for (var i = 0; i < 18; i += 1) {
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+        _modules[i % 3 + _moduleCount - 8 - 3][Math.floor(i / 3)] = mod;
+      }
+    };
+
+    var setupTypeInfo = function(test, maskPattern) {
+
+      var data = (_errorCorrectionLevel << 3) | maskPattern;
+      var bits = QRUtil.getBCHTypeInfo(data);
+
+      // vertical
+      for (var i = 0; i < 15; i += 1) {
+
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+
+        if (i < 6) {
+          _modules[i][8] = mod;
+        } else if (i < 8) {
+          _modules[i + 1][8] = mod;
+        } else {
+          _modules[_moduleCount - 15 + i][8] = mod;
+        }
+      }
+
+      // horizontal
+      for (var i = 0; i < 15; i += 1) {
+
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+
+        if (i < 8) {
+          _modules[8][_moduleCount - i - 1] = mod;
+        } else if (i < 9) {
+          _modules[8][15 - i - 1 + 1] = mod;
+        } else {
+          _modules[8][15 - i - 1] = mod;
+        }
+      }
+
+      // fixed module
+      _modules[_moduleCount - 8][8] = (!test);
+    };
+
+    var mapData = function(data, maskPattern) {
+
+      var inc = -1;
+      var row = _moduleCount - 1;
+      var bitIndex = 7;
+      var byteIndex = 0;
+      var maskFunc = QRUtil.getMaskFunction(maskPattern);
+
+      for (var col = _moduleCount - 1; col > 0; col -= 2) {
+
+        if (col == 6) col -= 1;
+
+        while (true) {
+
+          for (var c = 0; c < 2; c += 1) {
+
+            if (_modules[row][col - c] == null) {
+
+              var dark = false;
+
+              if (byteIndex < data.length) {
+                dark = ( ( (data[byteIndex] >>> bitIndex) & 1) == 1);
+              }
+
+              var mask = maskFunc(row, col - c);
+
+              if (mask) {
+                dark = !dark;
+              }
+
+              _modules[row][col - c] = dark;
+              bitIndex -= 1;
+
+              if (bitIndex == -1) {
+                byteIndex += 1;
+                bitIndex = 7;
+              }
+            }
+          }
+
+          row += inc;
+
+          if (row < 0 || _moduleCount <= row) {
+            row -= inc;
+            inc = -inc;
+            break;
+          }
+        }
+      }
+    };
+
+    var createBytes = function(buffer, rsBlocks) {
+
+      var offset = 0;
+
+      var maxDcCount = 0;
+      var maxEcCount = 0;
+
+      var dcdata = new Array(rsBlocks.length);
+      var ecdata = new Array(rsBlocks.length);
+
+      for (var r = 0; r < rsBlocks.length; r += 1) {
+
+        var dcCount = rsBlocks[r].dataCount;
+        var ecCount = rsBlocks[r].totalCount - dcCount;
+
+        maxDcCount = Math.max(maxDcCount, dcCount);
+        maxEcCount = Math.max(maxEcCount, ecCount);
+
+        dcdata[r] = new Array(dcCount);
+
+        for (var i = 0; i < dcdata[r].length; i += 1) {
+          dcdata[r][i] = 0xff & buffer.getBuffer()[i + offset];
+        }
+        offset += dcCount;
+
+        var rsPoly = QRUtil.getErrorCorrectPolynomial(ecCount);
+        var rawPoly = qrPolynomial(dcdata[r], rsPoly.getLength() - 1);
+
+        var modPoly = rawPoly.mod(rsPoly);
+        ecdata[r] = new Array(rsPoly.getLength() - 1);
+        for (var i = 0; i < ecdata[r].length; i += 1) {
+          var modIndex = i + modPoly.getLength() - ecdata[r].length;
+          ecdata[r][i] = (modIndex >= 0)? modPoly.getAt(modIndex) : 0;
+        }
+      }
+
+      var totalCodeCount = 0;
+      for (var i = 0; i < rsBlocks.length; i += 1) {
+        totalCodeCount += rsBlocks[i].totalCount;
+      }
+
+      var data = new Array(totalCodeCount);
+      var index = 0;
+
+      for (var i = 0; i < maxDcCount; i += 1) {
+        for (var r = 0; r < rsBlocks.length; r += 1) {
+          if (i < dcdata[r].length) {
+            data[index] = dcdata[r][i];
+            index += 1;
+          }
+        }
+      }
+
+      for (var i = 0; i < maxEcCount; i += 1) {
+        for (var r = 0; r < rsBlocks.length; r += 1) {
+          if (i < ecdata[r].length) {
+            data[index] = ecdata[r][i];
+            index += 1;
+          }
+        }
+      }
+
+      return data;
+    };
+
+    var createData = function(typeNumber, errorCorrectionLevel, dataList) {
+
+      var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, errorCorrectionLevel);
+
+      var buffer = qrBitBuffer();
+
+      for (var i = 0; i < dataList.length; i += 1) {
+        var data = dataList[i];
+        buffer.put(data.getMode(), 4);
+        buffer.put(data.getLength(), QRUtil.getLengthInBits(data.getMode(), typeNumber) );
+        data.write(buffer);
+      }
+
+      // calc num max data.
+      var totalDataCount = 0;
+      for (var i = 0; i < rsBlocks.length; i += 1) {
+        totalDataCount += rsBlocks[i].dataCount;
+      }
+
+      if (buffer.getLengthInBits() > totalDataCount * 8) {
+        throw 'code length overflow. ('
+          + buffer.getLengthInBits()
+          + '>'
+          + totalDataCount * 8
+          + ')';
+      }
+
+      // end code
+      if (buffer.getLengthInBits() + 4 <= totalDataCount * 8) {
+        buffer.put(0, 4);
+      }
+
+      // padding
+      while (buffer.getLengthInBits() % 8 != 0) {
+        buffer.putBit(false);
+      }
+
+      // padding
+      while (true) {
+
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(PAD0, 8);
+
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(PAD1, 8);
+      }
+
+      return createBytes(buffer, rsBlocks);
+    };
+
+    _this.addData = function(data, mode) {
+
+      mode = mode || 'Byte';
+
+      var newData = null;
+
+      switch(mode) {
+      case 'Numeric' :
+        newData = qrNumber(data);
+        break;
+      case 'Alphanumeric' :
+        newData = qrAlphaNum(data);
+        break;
+      case 'Byte' :
+        newData = qr8BitByte(data);
+        break;
+      case 'Kanji' :
+        newData = qrKanji(data);
+        break;
+      default :
+        throw 'mode:' + mode;
+      }
+
+      _dataList.push(newData);
+      _dataCache = null;
+    };
+
+    _this.isDark = function(row, col) {
+      if (row < 0 || _moduleCount <= row || col < 0 || _moduleCount <= col) {
+        throw row + ',' + col;
+      }
+      return _modules[row][col];
+    };
+
+    _this.getModuleCount = function() {
+      return _moduleCount;
+    };
+
+    _this.make = function() {
+      if (_typeNumber < 1) {
+        var typeNumber = 1;
+
+        for (; typeNumber < 40; typeNumber++) {
+          var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, _errorCorrectionLevel);
+          var buffer = qrBitBuffer();
+
+          for (var i = 0; i < _dataList.length; i++) {
+            var data = _dataList[i];
+            buffer.put(data.getMode(), 4);
+            buffer.put(data.getLength(), QRUtil.getLengthInBits(data.getMode(), typeNumber) );
+            data.write(buffer);
+          }
+
+          var totalDataCount = 0;
+          for (var i = 0; i < rsBlocks.length; i++) {
+            totalDataCount += rsBlocks[i].dataCount;
+          }
+
+          if (buffer.getLengthInBits() <= totalDataCount * 8) {
+            break;
+          }
+        }
+
+        _typeNumber = typeNumber;
+      }
+
+      makeImpl(false, getBestMaskPattern() );
+    };
+
+    _this.createTableTag = function(cellSize, margin) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var qrHtml = '';
+
+      qrHtml += '<table style="';
+      qrHtml += ' border-width: 0px; border-style: none;';
+      qrHtml += ' border-collapse: collapse;';
+      qrHtml += ' padding: 0px; margin: ' + margin + 'px;';
+      qrHtml += '">';
+      qrHtml += '<tbody>';
+
+      for (var r = 0; r < _this.getModuleCount(); r += 1) {
+
+        qrHtml += '<tr>';
+
+        for (var c = 0; c < _this.getModuleCount(); c += 1) {
+          qrHtml += '<td style="';
+          qrHtml += ' border-width: 0px; border-style: none;';
+          qrHtml += ' border-collapse: collapse;';
+          qrHtml += ' padding: 0px; margin: 0px;';
+          qrHtml += ' width: ' + cellSize + 'px;';
+          qrHtml += ' height: ' + cellSize + 'px;';
+          qrHtml += ' background-color: ';
+          qrHtml += _this.isDark(r, c)? '#000000' : '#ffffff';
+          qrHtml += ';';
+          qrHtml += '"/>';
+        }
+
+        qrHtml += '</tr>';
+      }
+
+      qrHtml += '</tbody>';
+      qrHtml += '</table>';
+
+      return qrHtml;
+    };
+
+    _this.createSvgTag = function(cellSize, margin, alt, title) {
+
+      var opts = {};
+      if (typeof arguments[0] == 'object') {
+        // Called by options.
+        opts = arguments[0];
+        // overwrite cellSize and margin.
+        cellSize = opts.cellSize;
+        margin = opts.margin;
+        alt = opts.alt;
+        title = opts.title;
+      }
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      // Compose alt property surrogate
+      alt = (typeof alt === 'string') ? {text: alt} : alt || {};
+      alt.text = alt.text || null;
+      alt.id = (alt.text) ? alt.id || 'qrcode-description' : null;
+
+      // Compose title property surrogate
+      title = (typeof title === 'string') ? {text: title} : title || {};
+      title.text = title.text || null;
+      title.id = (title.text) ? title.id || 'qrcode-title' : null;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var c, mc, r, mr, qrSvg='', rect;
+
+      rect = 'l' + cellSize + ',0 0,' + cellSize +
+        ' -' + cellSize + ',0 0,-' + cellSize + 'z ';
+
+      qrSvg += '<svg version="1.1" xmlns="http://www.w3.org/2000/svg"';
+      qrSvg += !opts.scalable ? ' width="' + size + 'px" height="' + size + 'px"' : '';
+      qrSvg += ' viewBox="0 0 ' + size + ' ' + size + '" ';
+      qrSvg += ' preserveAspectRatio="xMinYMin meet"';
+      qrSvg += (title.text || alt.text) ? ' role="img" aria-labelledby="' +
+          escapeXml([title.id, alt.id].join(' ').trim() ) + '"' : '';
+      qrSvg += '>';
+      qrSvg += (title.text) ? '<title id="' + escapeXml(title.id) + '">' +
+          escapeXml(title.text) + '</title>' : '';
+      qrSvg += (alt.text) ? '<description id="' + escapeXml(alt.id) + '">' +
+          escapeXml(alt.text) + '</description>' : '';
+      qrSvg += '<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>';
+      qrSvg += '<path d="';
+
+      for (r = 0; r < _this.getModuleCount(); r += 1) {
+        mr = r * cellSize + margin;
+        for (c = 0; c < _this.getModuleCount(); c += 1) {
+          if (_this.isDark(r, c) ) {
+            mc = c*cellSize+margin;
+            qrSvg += 'M' + mc + ',' + mr + rect;
+          }
+        }
+      }
+
+      qrSvg += '" stroke="transparent" fill="black"/>';
+      qrSvg += '</svg>';
+
+      return qrSvg;
+    };
+
+    _this.createDataURL = function(cellSize, margin) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      return createDataURL(size, size, function(x, y) {
+        if (min <= x && x < max && min <= y && y < max) {
+          var c = Math.floor( (x - min) / cellSize);
+          var r = Math.floor( (y - min) / cellSize);
+          return _this.isDark(r, c)? 0 : 1;
+        } else {
+          return 1;
+        }
+      } );
+    };
+
+    _this.createImgTag = function(cellSize, margin, alt) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+
+      var img = '';
+      img += '<img';
+      img += '\u0020src="';
+      img += _this.createDataURL(cellSize, margin);
+      img += '"';
+      img += '\u0020width="';
+      img += size;
+      img += '"';
+      img += '\u0020height="';
+      img += size;
+      img += '"';
+      if (alt) {
+        img += '\u0020alt="';
+        img += escapeXml(alt);
+        img += '"';
+      }
+      img += '/>';
+
+      return img;
+    };
+
+    var escapeXml = function(s) {
+      var escaped = '';
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charAt(i);
+        switch(c) {
+        case '<': escaped += '&lt;'; break;
+        case '>': escaped += '&gt;'; break;
+        case '&': escaped += '&amp;'; break;
+        case '"': escaped += '&quot;'; break;
+        default : escaped += c; break;
+        }
+      }
+      return escaped;
+    };
+
+    var _createHalfASCII = function(margin) {
+      var cellSize = 1;
+      margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      var y, x, r1, r2, p;
+
+      var blocks = {
+        '██': '█',
+        '█ ': '▀',
+        ' █': '▄',
+        '  ': ' '
+      };
+
+      var blocksLastLineNoMargin = {
+        '██': '▀',
+        '█ ': '▀',
+        ' █': ' ',
+        '  ': ' '
+      };
+
+      var ascii = '';
+      for (y = 0; y < size; y += 2) {
+        r1 = Math.floor((y - min) / cellSize);
+        r2 = Math.floor((y + 1 - min) / cellSize);
+        for (x = 0; x < size; x += 1) {
+          p = '█';
+
+          if (min <= x && x < max && min <= y && y < max && _this.isDark(r1, Math.floor((x - min) / cellSize))) {
+            p = ' ';
+          }
+
+          if (min <= x && x < max && min <= y+1 && y+1 < max && _this.isDark(r2, Math.floor((x - min) / cellSize))) {
+            p += ' ';
+          }
+          else {
+            p += '█';
+          }
+
+          // Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
+          ascii += (margin < 1 && y+1 >= max) ? blocksLastLineNoMargin[p] : blocks[p];
+        }
+
+        ascii += '\n';
+      }
+
+      if (size % 2 && margin > 0) {
+        return ascii.substring(0, ascii.length - size - 1) + Array(size+1).join('▀');
+      }
+
+      return ascii.substring(0, ascii.length-1);
+    };
+
+    _this.createASCII = function(cellSize, margin) {
+      cellSize = cellSize || 1;
+
+      if (cellSize < 2) {
+        return _createHalfASCII(margin);
+      }
+
+      cellSize -= 1;
+      margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      var y, x, r, p;
+
+      var white = Array(cellSize+1).join('██');
+      var black = Array(cellSize+1).join('  ');
+
+      var ascii = '';
+      var line = '';
+      for (y = 0; y < size; y += 1) {
+        r = Math.floor( (y - min) / cellSize);
+        line = '';
+        for (x = 0; x < size; x += 1) {
+          p = 1;
+
+          if (min <= x && x < max && min <= y && y < max && _this.isDark(r, Math.floor((x - min) / cellSize))) {
+            p = 0;
+          }
+
+          // Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
+          line += p ? white : black;
+        }
+
+        for (r = 0; r < cellSize; r += 1) {
+          ascii += line + '\n';
+        }
+      }
+
+      return ascii.substring(0, ascii.length-1);
+    };
+
+    _this.renderTo2dContext = function(context, cellSize) {
+      cellSize = cellSize || 2;
+      var length = _this.getModuleCount();
+      for (var row = 0; row < length; row++) {
+        for (var col = 0; col < length; col++) {
+          context.fillStyle = _this.isDark(row, col) ? 'black' : 'white';
+          context.fillRect(row * cellSize, col * cellSize, cellSize, cellSize);
+        }
+      }
+    }
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrcode.stringToBytes
+  //---------------------------------------------------------------------
+
+  qrcode.stringToBytesFuncs = {
+    'default' : function(s) {
+      var bytes = [];
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charCodeAt(i);
+        bytes.push(c & 0xff);
+      }
+      return bytes;
+    }
+  };
+
+  qrcode.stringToBytes = qrcode.stringToBytesFuncs['default'];
+
+  //---------------------------------------------------------------------
+  // qrcode.createStringToBytes
+  //---------------------------------------------------------------------
+
+  /**
+   * @param unicodeData base64 string of byte array.
+   * [16bit Unicode],[16bit Bytes], ...
+   * @param numChars
+   */
+  qrcode.createStringToBytes = function(unicodeData, numChars) {
+
+    // create conversion map.
+
+    var unicodeMap = function() {
+
+      var bin = base64DecodeInputStream(unicodeData);
+      var read = function() {
+        var b = bin.read();
+        if (b == -1) throw 'eof';
+        return b;
+      };
+
+      var count = 0;
+      var unicodeMap = {};
+      while (true) {
+        var b0 = bin.read();
+        if (b0 == -1) break;
+        var b1 = read();
+        var b2 = read();
+        var b3 = read();
+        var k = String.fromCharCode( (b0 << 8) | b1);
+        var v = (b2 << 8) | b3;
+        unicodeMap[k] = v;
+        count += 1;
+      }
+      if (count != numChars) {
+        throw count + ' != ' + numChars;
+      }
+
+      return unicodeMap;
+    }();
+
+    var unknownChar = '?'.charCodeAt(0);
+
+    return function(s) {
+      var bytes = [];
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charCodeAt(i);
+        if (c < 128) {
+          bytes.push(c);
+        } else {
+          var b = unicodeMap[s.charAt(i)];
+          if (typeof b == 'number') {
+            if ( (b & 0xff) == b) {
+              // 1byte
+              bytes.push(b);
+            } else {
+              // 2bytes
+              bytes.push(b >>> 8);
+              bytes.push(b & 0xff);
+            }
+          } else {
+            bytes.push(unknownChar);
+          }
+        }
+      }
+      return bytes;
+    };
+  };
+
+  //---------------------------------------------------------------------
+  // QRMode
+  //---------------------------------------------------------------------
+
+  var QRMode = {
+    MODE_NUMBER :    1 << 0,
+    MODE_ALPHA_NUM : 1 << 1,
+    MODE_8BIT_BYTE : 1 << 2,
+    MODE_KANJI :     1 << 3
+  };
+
+  //---------------------------------------------------------------------
+  // QRErrorCorrectionLevel
+  //---------------------------------------------------------------------
+
+  var QRErrorCorrectionLevel = {
+    L : 1,
+    M : 0,
+    Q : 3,
+    H : 2
+  };
+
+  //---------------------------------------------------------------------
+  // QRMaskPattern
+  //---------------------------------------------------------------------
+
+  var QRMaskPattern = {
+    PATTERN000 : 0,
+    PATTERN001 : 1,
+    PATTERN010 : 2,
+    PATTERN011 : 3,
+    PATTERN100 : 4,
+    PATTERN101 : 5,
+    PATTERN110 : 6,
+    PATTERN111 : 7
+  };
+
+  //---------------------------------------------------------------------
+  // QRUtil
+  //---------------------------------------------------------------------
+
+  var QRUtil = function() {
+
+    var PATTERN_POSITION_TABLE = [
+      [],
+      [6, 18],
+      [6, 22],
+      [6, 26],
+      [6, 30],
+      [6, 34],
+      [6, 22, 38],
+      [6, 24, 42],
+      [6, 26, 46],
+      [6, 28, 50],
+      [6, 30, 54],
+      [6, 32, 58],
+      [6, 34, 62],
+      [6, 26, 46, 66],
+      [6, 26, 48, 70],
+      [6, 26, 50, 74],
+      [6, 30, 54, 78],
+      [6, 30, 56, 82],
+      [6, 30, 58, 86],
+      [6, 34, 62, 90],
+      [6, 28, 50, 72, 94],
+      [6, 26, 50, 74, 98],
+      [6, 30, 54, 78, 102],
+      [6, 28, 54, 80, 106],
+      [6, 32, 58, 84, 110],
+      [6, 30, 58, 86, 114],
+      [6, 34, 62, 90, 118],
+      [6, 26, 50, 74, 98, 122],
+      [6, 30, 54, 78, 102, 126],
+      [6, 26, 52, 78, 104, 130],
+      [6, 30, 56, 82, 108, 134],
+      [6, 34, 60, 86, 112, 138],
+      [6, 30, 58, 86, 114, 142],
+      [6, 34, 62, 90, 118, 146],
+      [6, 30, 54, 78, 102, 126, 150],
+      [6, 24, 50, 76, 102, 128, 154],
+      [6, 28, 54, 80, 106, 132, 158],
+      [6, 32, 58, 84, 110, 136, 162],
+      [6, 26, 54, 82, 110, 138, 166],
+      [6, 30, 58, 86, 114, 142, 170]
+    ];
+    var G15 = (1 << 10) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 2) | (1 << 1) | (1 << 0);
+    var G18 = (1 << 12) | (1 << 11) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 5) | (1 << 2) | (1 << 0);
+    var G15_MASK = (1 << 14) | (1 << 12) | (1 << 10) | (1 << 4) | (1 << 1);
+
+    var _this = {};
+
+    var getBCHDigit = function(data) {
+      var digit = 0;
+      while (data != 0) {
+        digit += 1;
+        data >>>= 1;
+      }
+      return digit;
+    };
+
+    _this.getBCHTypeInfo = function(data) {
+      var d = data << 10;
+      while (getBCHDigit(d) - getBCHDigit(G15) >= 0) {
+        d ^= (G15 << (getBCHDigit(d) - getBCHDigit(G15) ) );
+      }
+      return ( (data << 10) | d) ^ G15_MASK;
+    };
+
+    _this.getBCHTypeNumber = function(data) {
+      var d = data << 12;
+      while (getBCHDigit(d) - getBCHDigit(G18) >= 0) {
+        d ^= (G18 << (getBCHDigit(d) - getBCHDigit(G18) ) );
+      }
+      return (data << 12) | d;
+    };
+
+    _this.getPatternPosition = function(typeNumber) {
+      return PATTERN_POSITION_TABLE[typeNumber - 1];
+    };
+
+    _this.getMaskFunction = function(maskPattern) {
+
+      switch (maskPattern) {
+
+      case QRMaskPattern.PATTERN000 :
+        return function(i, j) { return (i + j) % 2 == 0; };
+      case QRMaskPattern.PATTERN001 :
+        return function(i, j) { return i % 2 == 0; };
+      case QRMaskPattern.PATTERN010 :
+        return function(i, j) { return j % 3 == 0; };
+      case QRMaskPattern.PATTERN011 :
+        return function(i, j) { return (i + j) % 3 == 0; };
+      case QRMaskPattern.PATTERN100 :
+        return function(i, j) { return (Math.floor(i / 2) + Math.floor(j / 3) ) % 2 == 0; };
+      case QRMaskPattern.PATTERN101 :
+        return function(i, j) { return (i * j) % 2 + (i * j) % 3 == 0; };
+      case QRMaskPattern.PATTERN110 :
+        return function(i, j) { return ( (i * j) % 2 + (i * j) % 3) % 2 == 0; };
+      case QRMaskPattern.PATTERN111 :
+        return function(i, j) { return ( (i * j) % 3 + (i + j) % 2) % 2 == 0; };
+
+      default :
+        throw 'bad maskPattern:' + maskPattern;
+      }
+    };
+
+    _this.getErrorCorrectPolynomial = function(errorCorrectLength) {
+      var a = qrPolynomial([1], 0);
+      for (var i = 0; i < errorCorrectLength; i += 1) {
+        a = a.multiply(qrPolynomial([1, QRMath.gexp(i)], 0) );
+      }
+      return a;
+    };
+
+    _this.getLengthInBits = function(mode, type) {
+
+      if (1 <= type && type < 10) {
+
+        // 1 - 9
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 10;
+        case QRMode.MODE_ALPHA_NUM : return 9;
+        case QRMode.MODE_8BIT_BYTE : return 8;
+        case QRMode.MODE_KANJI     : return 8;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else if (type < 27) {
+
+        // 10 - 26
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 12;
+        case QRMode.MODE_ALPHA_NUM : return 11;
+        case QRMode.MODE_8BIT_BYTE : return 16;
+        case QRMode.MODE_KANJI     : return 10;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else if (type < 41) {
+
+        // 27 - 40
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 14;
+        case QRMode.MODE_ALPHA_NUM : return 13;
+        case QRMode.MODE_8BIT_BYTE : return 16;
+        case QRMode.MODE_KANJI     : return 12;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else {
+        throw 'type:' + type;
+      }
+    };
+
+    _this.getLostPoint = function(qrcode) {
+
+      var moduleCount = qrcode.getModuleCount();
+
+      var lostPoint = 0;
+
+      // LEVEL1
+
+      for (var row = 0; row < moduleCount; row += 1) {
+        for (var col = 0; col < moduleCount; col += 1) {
+
+          var sameCount = 0;
+          var dark = qrcode.isDark(row, col);
+
+          for (var r = -1; r <= 1; r += 1) {
+
+            if (row + r < 0 || moduleCount <= row + r) {
+              continue;
+            }
+
+            for (var c = -1; c <= 1; c += 1) {
+
+              if (col + c < 0 || moduleCount <= col + c) {
+                continue;
+              }
+
+              if (r == 0 && c == 0) {
+                continue;
+              }
+
+              if (dark == qrcode.isDark(row + r, col + c) ) {
+                sameCount += 1;
+              }
+            }
+          }
+
+          if (sameCount > 5) {
+            lostPoint += (3 + sameCount - 5);
+          }
+        }
+      };
+
+      // LEVEL2
+
+      for (var row = 0; row < moduleCount - 1; row += 1) {
+        for (var col = 0; col < moduleCount - 1; col += 1) {
+          var count = 0;
+          if (qrcode.isDark(row, col) ) count += 1;
+          if (qrcode.isDark(row + 1, col) ) count += 1;
+          if (qrcode.isDark(row, col + 1) ) count += 1;
+          if (qrcode.isDark(row + 1, col + 1) ) count += 1;
+          if (count == 0 || count == 4) {
+            lostPoint += 3;
+          }
+        }
+      }
+
+      // LEVEL3
+
+      for (var row = 0; row < moduleCount; row += 1) {
+        for (var col = 0; col < moduleCount - 6; col += 1) {
+          if (qrcode.isDark(row, col)
+              && !qrcode.isDark(row, col + 1)
+              &&  qrcode.isDark(row, col + 2)
+              &&  qrcode.isDark(row, col + 3)
+              &&  qrcode.isDark(row, col + 4)
+              && !qrcode.isDark(row, col + 5)
+              &&  qrcode.isDark(row, col + 6) ) {
+            lostPoint += 40;
+          }
+        }
+      }
+
+      for (var col = 0; col < moduleCount; col += 1) {
+        for (var row = 0; row < moduleCount - 6; row += 1) {
+          if (qrcode.isDark(row, col)
+              && !qrcode.isDark(row + 1, col)
+              &&  qrcode.isDark(row + 2, col)
+              &&  qrcode.isDark(row + 3, col)
+              &&  qrcode.isDark(row + 4, col)
+              && !qrcode.isDark(row + 5, col)
+              &&  qrcode.isDark(row + 6, col) ) {
+            lostPoint += 40;
+          }
+        }
+      }
+
+      // LEVEL4
+
+      var darkCount = 0;
+
+      for (var col = 0; col < moduleCount; col += 1) {
+        for (var row = 0; row < moduleCount; row += 1) {
+          if (qrcode.isDark(row, col) ) {
+            darkCount += 1;
+          }
+        }
+      }
+
+      var ratio = Math.abs(100 * darkCount / moduleCount / moduleCount - 50) / 5;
+      lostPoint += ratio * 10;
+
+      return lostPoint;
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // QRMath
+  //---------------------------------------------------------------------
+
+  var QRMath = function() {
+
+    var EXP_TABLE = new Array(256);
+    var LOG_TABLE = new Array(256);
+
+    // initialize tables
+    for (var i = 0; i < 8; i += 1) {
+      EXP_TABLE[i] = 1 << i;
+    }
+    for (var i = 8; i < 256; i += 1) {
+      EXP_TABLE[i] = EXP_TABLE[i - 4]
+        ^ EXP_TABLE[i - 5]
+        ^ EXP_TABLE[i - 6]
+        ^ EXP_TABLE[i - 8];
+    }
+    for (var i = 0; i < 255; i += 1) {
+      LOG_TABLE[EXP_TABLE[i] ] = i;
+    }
+
+    var _this = {};
+
+    _this.glog = function(n) {
+
+      if (n < 1) {
+        throw 'glog(' + n + ')';
+      }
+
+      return LOG_TABLE[n];
+    };
+
+    _this.gexp = function(n) {
+
+      while (n < 0) {
+        n += 255;
+      }
+
+      while (n >= 256) {
+        n -= 255;
+      }
+
+      return EXP_TABLE[n];
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // qrPolynomial
+  //---------------------------------------------------------------------
+
+  function qrPolynomial(num, shift) {
+
+    if (typeof num.length == 'undefined') {
+      throw num.length + '/' + shift;
+    }
+
+    var _num = function() {
+      var offset = 0;
+      while (offset < num.length && num[offset] == 0) {
+        offset += 1;
+      }
+      var _num = new Array(num.length - offset + shift);
+      for (var i = 0; i < num.length - offset; i += 1) {
+        _num[i] = num[i + offset];
+      }
+      return _num;
+    }();
+
+    var _this = {};
+
+    _this.getAt = function(index) {
+      return _num[index];
+    };
+
+    _this.getLength = function() {
+      return _num.length;
+    };
+
+    _this.multiply = function(e) {
+
+      var num = new Array(_this.getLength() + e.getLength() - 1);
+
+      for (var i = 0; i < _this.getLength(); i += 1) {
+        for (var j = 0; j < e.getLength(); j += 1) {
+          num[i + j] ^= QRMath.gexp(QRMath.glog(_this.getAt(i) ) + QRMath.glog(e.getAt(j) ) );
+        }
+      }
+
+      return qrPolynomial(num, 0);
+    };
+
+    _this.mod = function(e) {
+
+      if (_this.getLength() - e.getLength() < 0) {
+        return _this;
+      }
+
+      var ratio = QRMath.glog(_this.getAt(0) ) - QRMath.glog(e.getAt(0) );
+
+      var num = new Array(_this.getLength() );
+      for (var i = 0; i < _this.getLength(); i += 1) {
+        num[i] = _this.getAt(i);
+      }
+
+      for (var i = 0; i < e.getLength(); i += 1) {
+        num[i] ^= QRMath.gexp(QRMath.glog(e.getAt(i) ) + ratio);
+      }
+
+      // recursive call
+      return qrPolynomial(num, 0).mod(e);
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // QRRSBlock
+  //---------------------------------------------------------------------
+
+  var QRRSBlock = function() {
+
+    var RS_BLOCK_TABLE = [
+
+      // L
+      // M
+      // Q
+      // H
+
+      // 1
+      [1, 26, 19],
+      [1, 26, 16],
+      [1, 26, 13],
+      [1, 26, 9],
+
+      // 2
+      [1, 44, 34],
+      [1, 44, 28],
+      [1, 44, 22],
+      [1, 44, 16],
+
+      // 3
+      [1, 70, 55],
+      [1, 70, 44],
+      [2, 35, 17],
+      [2, 35, 13],
+
+      // 4
+      [1, 100, 80],
+      [2, 50, 32],
+      [2, 50, 24],
+      [4, 25, 9],
+
+      // 5
+      [1, 134, 108],
+      [2, 67, 43],
+      [2, 33, 15, 2, 34, 16],
+      [2, 33, 11, 2, 34, 12],
+
+      // 6
+      [2, 86, 68],
+      [4, 43, 27],
+      [4, 43, 19],
+      [4, 43, 15],
+
+      // 7
+      [2, 98, 78],
+      [4, 49, 31],
+      [2, 32, 14, 4, 33, 15],
+      [4, 39, 13, 1, 40, 14],
+
+      // 8
+      [2, 121, 97],
+      [2, 60, 38, 2, 61, 39],
+      [4, 40, 18, 2, 41, 19],
+      [4, 40, 14, 2, 41, 15],
+
+      // 9
+      [2, 146, 116],
+      [3, 58, 36, 2, 59, 37],
+      [4, 36, 16, 4, 37, 17],
+      [4, 36, 12, 4, 37, 13],
+
+      // 10
+      [2, 86, 68, 2, 87, 69],
+      [4, 69, 43, 1, 70, 44],
+      [6, 43, 19, 2, 44, 20],
+      [6, 43, 15, 2, 44, 16],
+
+      // 11
+      [4, 101, 81],
+      [1, 80, 50, 4, 81, 51],
+      [4, 50, 22, 4, 51, 23],
+      [3, 36, 12, 8, 37, 13],
+
+      // 12
+      [2, 116, 92, 2, 117, 93],
+      [6, 58, 36, 2, 59, 37],
+      [4, 46, 20, 6, 47, 21],
+      [7, 42, 14, 4, 43, 15],
+
+      // 13
+      [4, 133, 107],
+      [8, 59, 37, 1, 60, 38],
+      [8, 44, 20, 4, 45, 21],
+      [12, 33, 11, 4, 34, 12],
+
+      // 14
+      [3, 145, 115, 1, 146, 116],
+      [4, 64, 40, 5, 65, 41],
+      [11, 36, 16, 5, 37, 17],
+      [11, 36, 12, 5, 37, 13],
+
+      // 15
+      [5, 109, 87, 1, 110, 88],
+      [5, 65, 41, 5, 66, 42],
+      [5, 54, 24, 7, 55, 25],
+      [11, 36, 12, 7, 37, 13],
+
+      // 16
+      [5, 122, 98, 1, 123, 99],
+      [7, 73, 45, 3, 74, 46],
+      [15, 43, 19, 2, 44, 20],
+      [3, 45, 15, 13, 46, 16],
+
+      // 17
+      [1, 135, 107, 5, 136, 108],
+      [10, 74, 46, 1, 75, 47],
+      [1, 50, 22, 15, 51, 23],
+      [2, 42, 14, 17, 43, 15],
+
+      // 18
+      [5, 150, 120, 1, 151, 121],
+      [9, 69, 43, 4, 70, 44],
+      [17, 50, 22, 1, 51, 23],
+      [2, 42, 14, 19, 43, 15],
+
+      // 19
+      [3, 141, 113, 4, 142, 114],
+      [3, 70, 44, 11, 71, 45],
+      [17, 47, 21, 4, 48, 22],
+      [9, 39, 13, 16, 40, 14],
+
+      // 20
+      [3, 135, 107, 5, 136, 108],
+      [3, 67, 41, 13, 68, 42],
+      [15, 54, 24, 5, 55, 25],
+      [15, 43, 15, 10, 44, 16],
+
+      // 21
+      [4, 144, 116, 4, 145, 117],
+      [17, 68, 42],
+      [17, 50, 22, 6, 51, 23],
+      [19, 46, 16, 6, 47, 17],
+
+      // 22
+      [2, 139, 111, 7, 140, 112],
+      [17, 74, 46],
+      [7, 54, 24, 16, 55, 25],
+      [34, 37, 13],
+
+      // 23
+      [4, 151, 121, 5, 152, 122],
+      [4, 75, 47, 14, 76, 48],
+      [11, 54, 24, 14, 55, 25],
+      [16, 45, 15, 14, 46, 16],
+
+      // 24
+      [6, 147, 117, 4, 148, 118],
+      [6, 73, 45, 14, 74, 46],
+      [11, 54, 24, 16, 55, 25],
+      [30, 46, 16, 2, 47, 17],
+
+      // 25
+      [8, 132, 106, 4, 133, 107],
+      [8, 75, 47, 13, 76, 48],
+      [7, 54, 24, 22, 55, 25],
+      [22, 45, 15, 13, 46, 16],
+
+      // 26
+      [10, 142, 114, 2, 143, 115],
+      [19, 74, 46, 4, 75, 47],
+      [28, 50, 22, 6, 51, 23],
+      [33, 46, 16, 4, 47, 17],
+
+      // 27
+      [8, 152, 122, 4, 153, 123],
+      [22, 73, 45, 3, 74, 46],
+      [8, 53, 23, 26, 54, 24],
+      [12, 45, 15, 28, 46, 16],
+
+      // 28
+      [3, 147, 117, 10, 148, 118],
+      [3, 73, 45, 23, 74, 46],
+      [4, 54, 24, 31, 55, 25],
+      [11, 45, 15, 31, 46, 16],
+
+      // 29
+      [7, 146, 116, 7, 147, 117],
+      [21, 73, 45, 7, 74, 46],
+      [1, 53, 23, 37, 54, 24],
+      [19, 45, 15, 26, 46, 16],
+
+      // 30
+      [5, 145, 115, 10, 146, 116],
+      [19, 75, 47, 10, 76, 48],
+      [15, 54, 24, 25, 55, 25],
+      [23, 45, 15, 25, 46, 16],
+
+      // 31
+      [13, 145, 115, 3, 146, 116],
+      [2, 74, 46, 29, 75, 47],
+      [42, 54, 24, 1, 55, 25],
+      [23, 45, 15, 28, 46, 16],
+
+      // 32
+      [17, 145, 115],
+      [10, 74, 46, 23, 75, 47],
+      [10, 54, 24, 35, 55, 25],
+      [19, 45, 15, 35, 46, 16],
+
+      // 33
+      [17, 145, 115, 1, 146, 116],
+      [14, 74, 46, 21, 75, 47],
+      [29, 54, 24, 19, 55, 25],
+      [11, 45, 15, 46, 46, 16],
+
+      // 34
+      [13, 145, 115, 6, 146, 116],
+      [14, 74, 46, 23, 75, 47],
+      [44, 54, 24, 7, 55, 25],
+      [59, 46, 16, 1, 47, 17],
+
+      // 35
+      [12, 151, 121, 7, 152, 122],
+      [12, 75, 47, 26, 76, 48],
+      [39, 54, 24, 14, 55, 25],
+      [22, 45, 15, 41, 46, 16],
+
+      // 36
+      [6, 151, 121, 14, 152, 122],
+      [6, 75, 47, 34, 76, 48],
+      [46, 54, 24, 10, 55, 25],
+      [2, 45, 15, 64, 46, 16],
+
+      // 37
+      [17, 152, 122, 4, 153, 123],
+      [29, 74, 46, 14, 75, 47],
+      [49, 54, 24, 10, 55, 25],
+      [24, 45, 15, 46, 46, 16],
+
+      // 38
+      [4, 152, 122, 18, 153, 123],
+      [13, 74, 46, 32, 75, 47],
+      [48, 54, 24, 14, 55, 25],
+      [42, 45, 15, 32, 46, 16],
+
+      // 39
+      [20, 147, 117, 4, 148, 118],
+      [40, 75, 47, 7, 76, 48],
+      [43, 54, 24, 22, 55, 25],
+      [10, 45, 15, 67, 46, 16],
+
+      // 40
+      [19, 148, 118, 6, 149, 119],
+      [18, 75, 47, 31, 76, 48],
+      [34, 54, 24, 34, 55, 25],
+      [20, 45, 15, 61, 46, 16]
+    ];
+
+    var qrRSBlock = function(totalCount, dataCount) {
+      var _this = {};
+      _this.totalCount = totalCount;
+      _this.dataCount = dataCount;
+      return _this;
+    };
+
+    var _this = {};
+
+    var getRsBlockTable = function(typeNumber, errorCorrectionLevel) {
+
+      switch(errorCorrectionLevel) {
+      case QRErrorCorrectionLevel.L :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 0];
+      case QRErrorCorrectionLevel.M :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 1];
+      case QRErrorCorrectionLevel.Q :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 2];
+      case QRErrorCorrectionLevel.H :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 3];
+      default :
+        return undefined;
+      }
+    };
+
+    _this.getRSBlocks = function(typeNumber, errorCorrectionLevel) {
+
+      var rsBlock = getRsBlockTable(typeNumber, errorCorrectionLevel);
+
+      if (typeof rsBlock == 'undefined') {
+        throw 'bad rs block @ typeNumber:' + typeNumber +
+            '/errorCorrectionLevel:' + errorCorrectionLevel;
+      }
+
+      var length = rsBlock.length / 3;
+
+      var list = [];
+
+      for (var i = 0; i < length; i += 1) {
+
+        var count = rsBlock[i * 3 + 0];
+        var totalCount = rsBlock[i * 3 + 1];
+        var dataCount = rsBlock[i * 3 + 2];
+
+        for (var j = 0; j < count; j += 1) {
+          list.push(qrRSBlock(totalCount, dataCount) );
+        }
+      }
+
+      return list;
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // qrBitBuffer
+  //---------------------------------------------------------------------
+
+  var qrBitBuffer = function() {
+
+    var _buffer = [];
+    var _length = 0;
+
+    var _this = {};
+
+    _this.getBuffer = function() {
+      return _buffer;
+    };
+
+    _this.getAt = function(index) {
+      var bufIndex = Math.floor(index / 8);
+      return ( (_buffer[bufIndex] >>> (7 - index % 8) ) & 1) == 1;
+    };
+
+    _this.put = function(num, length) {
+      for (var i = 0; i < length; i += 1) {
+        _this.putBit( ( (num >>> (length - i - 1) ) & 1) == 1);
+      }
+    };
+
+    _this.getLengthInBits = function() {
+      return _length;
+    };
+
+    _this.putBit = function(bit) {
+
+      var bufIndex = Math.floor(_length / 8);
+      if (_buffer.length <= bufIndex) {
+        _buffer.push(0);
+      }
+
+      if (bit) {
+        _buffer[bufIndex] |= (0x80 >>> (_length % 8) );
+      }
+
+      _length += 1;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrNumber
+  //---------------------------------------------------------------------
+
+  var qrNumber = function(data) {
+
+    var _mode = QRMode.MODE_NUMBER;
+    var _data = data;
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _data.length;
+    };
+
+    _this.write = function(buffer) {
+
+      var data = _data;
+
+      var i = 0;
+
+      while (i + 2 < data.length) {
+        buffer.put(strToNum(data.substring(i, i + 3) ), 10);
+        i += 3;
+      }
+
+      if (i < data.length) {
+        if (data.length - i == 1) {
+          buffer.put(strToNum(data.substring(i, i + 1) ), 4);
+        } else if (data.length - i == 2) {
+          buffer.put(strToNum(data.substring(i, i + 2) ), 7);
+        }
+      }
+    };
+
+    var strToNum = function(s) {
+      var num = 0;
+      for (var i = 0; i < s.length; i += 1) {
+        num = num * 10 + chatToNum(s.charAt(i) );
+      }
+      return num;
+    };
+
+    var chatToNum = function(c) {
+      if ('0' <= c && c <= '9') {
+        return c.charCodeAt(0) - '0'.charCodeAt(0);
+      }
+      throw 'illegal char :' + c;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrAlphaNum
+  //---------------------------------------------------------------------
+
+  var qrAlphaNum = function(data) {
+
+    var _mode = QRMode.MODE_ALPHA_NUM;
+    var _data = data;
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _data.length;
+    };
+
+    _this.write = function(buffer) {
+
+      var s = _data;
+
+      var i = 0;
+
+      while (i + 1 < s.length) {
+        buffer.put(
+          getCode(s.charAt(i) ) * 45 +
+          getCode(s.charAt(i + 1) ), 11);
+        i += 2;
+      }
+
+      if (i < s.length) {
+        buffer.put(getCode(s.charAt(i) ), 6);
+      }
+    };
+
+    var getCode = function(c) {
+
+      if ('0' <= c && c <= '9') {
+        return c.charCodeAt(0) - '0'.charCodeAt(0);
+      } else if ('A' <= c && c <= 'Z') {
+        return c.charCodeAt(0) - 'A'.charCodeAt(0) + 10;
+      } else {
+        switch (c) {
+        case ' ' : return 36;
+        case '$' : return 37;
+        case '%' : return 38;
+        case '*' : return 39;
+        case '+' : return 40;
+        case '-' : return 41;
+        case '.' : return 42;
+        case '/' : return 43;
+        case ':' : return 44;
+        default :
+          throw 'illegal char :' + c;
+        }
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qr8BitByte
+  //---------------------------------------------------------------------
+
+  var qr8BitByte = function(data) {
+
+    var _mode = QRMode.MODE_8BIT_BYTE;
+    var _data = data;
+    var _bytes = qrcode.stringToBytes(data);
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _bytes.length;
+    };
+
+    _this.write = function(buffer) {
+      for (var i = 0; i < _bytes.length; i += 1) {
+        buffer.put(_bytes[i], 8);
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrKanji
+  //---------------------------------------------------------------------
+
+  var qrKanji = function(data) {
+
+    var _mode = QRMode.MODE_KANJI;
+    var _data = data;
+
+    var stringToBytes = qrcode.stringToBytesFuncs['SJIS'];
+    if (!stringToBytes) {
+      throw 'sjis not supported.';
+    }
+    !function(c, code) {
+      // self test for sjis support.
+      var test = stringToBytes(c);
+      if (test.length != 2 || ( (test[0] << 8) | test[1]) != code) {
+        throw 'sjis not supported.';
+      }
+    }('\u53cb', 0x9746);
+
+    var _bytes = stringToBytes(data);
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return ~~(_bytes.length / 2);
+    };
+
+    _this.write = function(buffer) {
+
+      var data = _bytes;
+
+      var i = 0;
+
+      while (i + 1 < data.length) {
+
+        var c = ( (0xff & data[i]) << 8) | (0xff & data[i + 1]);
+
+        if (0x8140 <= c && c <= 0x9FFC) {
+          c -= 0x8140;
+        } else if (0xE040 <= c && c <= 0xEBBF) {
+          c -= 0xC140;
+        } else {
+          throw 'illegal char at ' + (i + 1) + '/' + c;
+        }
+
+        c = ( (c >>> 8) & 0xff) * 0xC0 + (c & 0xff);
+
+        buffer.put(c, 13);
+
+        i += 2;
+      }
+
+      if (i < data.length) {
+        throw 'illegal char at ' + (i + 1);
+      }
+    };
+
+    return _this;
+  };
+
+  //=====================================================================
+  // GIF Support etc.
+  //
+
+  //---------------------------------------------------------------------
+  // byteArrayOutputStream
+  //---------------------------------------------------------------------
+
+  var byteArrayOutputStream = function() {
+
+    var _bytes = [];
+
+    var _this = {};
+
+    _this.writeByte = function(b) {
+      _bytes.push(b & 0xff);
+    };
+
+    _this.writeShort = function(i) {
+      _this.writeByte(i);
+      _this.writeByte(i >>> 8);
+    };
+
+    _this.writeBytes = function(b, off, len) {
+      off = off || 0;
+      len = len || b.length;
+      for (var i = 0; i < len; i += 1) {
+        _this.writeByte(b[i + off]);
+      }
+    };
+
+    _this.writeString = function(s) {
+      for (var i = 0; i < s.length; i += 1) {
+        _this.writeByte(s.charCodeAt(i) );
+      }
+    };
+
+    _this.toByteArray = function() {
+      return _bytes;
+    };
+
+    _this.toString = function() {
+      var s = '';
+      s += '[';
+      for (var i = 0; i < _bytes.length; i += 1) {
+        if (i > 0) {
+          s += ',';
+        }
+        s += _bytes[i];
+      }
+      s += ']';
+      return s;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // base64EncodeOutputStream
+  //---------------------------------------------------------------------
+
+  var base64EncodeOutputStream = function() {
+
+    var _buffer = 0;
+    var _buflen = 0;
+    var _length = 0;
+    var _base64 = '';
+
+    var _this = {};
+
+    var writeEncoded = function(b) {
+      _base64 += String.fromCharCode(encode(b & 0x3f) );
+    };
+
+    var encode = function(n) {
+      if (n < 0) {
+        // error.
+      } else if (n < 26) {
+        return 0x41 + n;
+      } else if (n < 52) {
+        return 0x61 + (n - 26);
+      } else if (n < 62) {
+        return 0x30 + (n - 52);
+      } else if (n == 62) {
+        return 0x2b;
+      } else if (n == 63) {
+        return 0x2f;
+      }
+      throw 'n:' + n;
+    };
+
+    _this.writeByte = function(n) {
+
+      _buffer = (_buffer << 8) | (n & 0xff);
+      _buflen += 8;
+      _length += 1;
+
+      while (_buflen >= 6) {
+        writeEncoded(_buffer >>> (_buflen - 6) );
+        _buflen -= 6;
+      }
+    };
+
+    _this.flush = function() {
+
+      if (_buflen > 0) {
+        writeEncoded(_buffer << (6 - _buflen) );
+        _buffer = 0;
+        _buflen = 0;
+      }
+
+      if (_length % 3 != 0) {
+        // padding
+        var padlen = 3 - _length % 3;
+        for (var i = 0; i < padlen; i += 1) {
+          _base64 += '=';
+        }
+      }
+    };
+
+    _this.toString = function() {
+      return _base64;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // base64DecodeInputStream
+  //---------------------------------------------------------------------
+
+  var base64DecodeInputStream = function(str) {
+
+    var _str = str;
+    var _pos = 0;
+    var _buffer = 0;
+    var _buflen = 0;
+
+    var _this = {};
+
+    _this.read = function() {
+
+      while (_buflen < 8) {
+
+        if (_pos >= _str.length) {
+          if (_buflen == 0) {
+            return -1;
+          }
+          throw 'unexpected end of file./' + _buflen;
+        }
+
+        var c = _str.charAt(_pos);
+        _pos += 1;
+
+        if (c == '=') {
+          _buflen = 0;
+          return -1;
+        } else if (c.match(/^\s$/) ) {
+          // ignore if whitespace.
+          continue;
+        }
+
+        _buffer = (_buffer << 6) | decode(c.charCodeAt(0) );
+        _buflen += 6;
+      }
+
+      var n = (_buffer >>> (_buflen - 8) ) & 0xff;
+      _buflen -= 8;
+      return n;
+    };
+
+    var decode = function(c) {
+      if (0x41 <= c && c <= 0x5a) {
+        return c - 0x41;
+      } else if (0x61 <= c && c <= 0x7a) {
+        return c - 0x61 + 26;
+      } else if (0x30 <= c && c <= 0x39) {
+        return c - 0x30 + 52;
+      } else if (c == 0x2b) {
+        return 62;
+      } else if (c == 0x2f) {
+        return 63;
+      } else {
+        throw 'c:' + c;
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // gifImage (B/W)
+  //---------------------------------------------------------------------
+
+  var gifImage = function(width, height) {
+
+    var _width = width;
+    var _height = height;
+    var _data = new Array(width * height);
+
+    var _this = {};
+
+    _this.setPixel = function(x, y, pixel) {
+      _data[y * _width + x] = pixel;
+    };
+
+    _this.write = function(out) {
+
+      //---------------------------------
+      // GIF Signature
+
+      out.writeString('GIF87a');
+
+      //---------------------------------
+      // Screen Descriptor
+
+      out.writeShort(_width);
+      out.writeShort(_height);
+
+      out.writeByte(0x80); // 2bit
+      out.writeByte(0);
+      out.writeByte(0);
+
+      //---------------------------------
+      // Global Color Map
+
+      // black
+      out.writeByte(0x00);
+      out.writeByte(0x00);
+      out.writeByte(0x00);
+
+      // white
+      out.writeByte(0xff);
+      out.writeByte(0xff);
+      out.writeByte(0xff);
+
+      //---------------------------------
+      // Image Descriptor
+
+      out.writeString(',');
+      out.writeShort(0);
+      out.writeShort(0);
+      out.writeShort(_width);
+      out.writeShort(_height);
+      out.writeByte(0);
+
+      //---------------------------------
+      // Local Color Map
+
+      //---------------------------------
+      // Raster Data
+
+      var lzwMinCodeSize = 2;
+      var raster = getLZWRaster(lzwMinCodeSize);
+
+      out.writeByte(lzwMinCodeSize);
+
+      var offset = 0;
+
+      while (raster.length - offset > 255) {
+        out.writeByte(255);
+        out.writeBytes(raster, offset, 255);
+        offset += 255;
+      }
+
+      out.writeByte(raster.length - offset);
+      out.writeBytes(raster, offset, raster.length - offset);
+      out.writeByte(0x00);
+
+      //---------------------------------
+      // GIF Terminator
+      out.writeString(';');
+    };
+
+    var bitOutputStream = function(out) {
+
+      var _out = out;
+      var _bitLength = 0;
+      var _bitBuffer = 0;
+
+      var _this = {};
+
+      _this.write = function(data, length) {
+
+        if ( (data >>> length) != 0) {
+          throw 'length over';
+        }
+
+        while (_bitLength + length >= 8) {
+          _out.writeByte(0xff & ( (data << _bitLength) | _bitBuffer) );
+          length -= (8 - _bitLength);
+          data >>>= (8 - _bitLength);
+          _bitBuffer = 0;
+          _bitLength = 0;
+        }
+
+        _bitBuffer = (data << _bitLength) | _bitBuffer;
+        _bitLength = _bitLength + length;
+      };
+
+      _this.flush = function() {
+        if (_bitLength > 0) {
+          _out.writeByte(_bitBuffer);
+        }
+      };
+
+      return _this;
+    };
+
+    var getLZWRaster = function(lzwMinCodeSize) {
+
+      var clearCode = 1 << lzwMinCodeSize;
+      var endCode = (1 << lzwMinCodeSize) + 1;
+      var bitLength = lzwMinCodeSize + 1;
+
+      // Setup LZWTable
+      var table = lzwTable();
+
+      for (var i = 0; i < clearCode; i += 1) {
+        table.add(String.fromCharCode(i) );
+      }
+      table.add(String.fromCharCode(clearCode) );
+      table.add(String.fromCharCode(endCode) );
+
+      var byteOut = byteArrayOutputStream();
+      var bitOut = bitOutputStream(byteOut);
+
+      // clear code
+      bitOut.write(clearCode, bitLength);
+
+      var dataIndex = 0;
+
+      var s = String.fromCharCode(_data[dataIndex]);
+      dataIndex += 1;
+
+      while (dataIndex < _data.length) {
+
+        var c = String.fromCharCode(_data[dataIndex]);
+        dataIndex += 1;
+
+        if (table.contains(s + c) ) {
+
+          s = s + c;
+
+        } else {
+
+          bitOut.write(table.indexOf(s), bitLength);
+
+          if (table.size() < 0xfff) {
+
+            if (table.size() == (1 << bitLength) ) {
+              bitLength += 1;
+            }
+
+            table.add(s + c);
+          }
+
+          s = c;
+        }
+      }
+
+      bitOut.write(table.indexOf(s), bitLength);
+
+      // end code
+      bitOut.write(endCode, bitLength);
+
+      bitOut.flush();
+
+      return byteOut.toByteArray();
+    };
+
+    var lzwTable = function() {
+
+      var _map = {};
+      var _size = 0;
+
+      var _this = {};
+
+      _this.add = function(key) {
+        if (_this.contains(key) ) {
+          throw 'dup key:' + key;
+        }
+        _map[key] = _size;
+        _size += 1;
+      };
+
+      _this.size = function() {
+        return _size;
+      };
+
+      _this.indexOf = function(key) {
+        return _map[key];
+      };
+
+      _this.contains = function(key) {
+        return typeof _map[key] != 'undefined';
+      };
+
+      return _this;
+    };
+
+    return _this;
+  };
+
+  var createDataURL = function(width, height, getPixel) {
+    var gif = gifImage(width, height);
+    for (var y = 0; y < height; y += 1) {
+      for (var x = 0; x < width; x += 1) {
+        gif.setPixel(x, y, getPixel(x, y) );
+      }
+    }
+
+    var b = byteArrayOutputStream();
+    gif.write(b);
+
+    var base64 = base64EncodeOutputStream();
+    var bytes = b.toByteArray();
+    for (var i = 0; i < bytes.length; i += 1) {
+      base64.writeByte(bytes[i]);
+    }
+    base64.flush();
+
+    return 'data:image/gif;base64,' + base64;
+  };
+
+  //---------------------------------------------------------------------
+  // returns qrcode function.
+
+  return qrcode;
+}();
+
+// multibyte support
+!function() {
+
+  qrcode.stringToBytesFuncs['UTF-8'] = function(s) {
+    // http://stackoverflow.com/questions/18729405/how-to-convert-utf8-string-to-byte-array
+    function toUTF8Array(str) {
+      var utf8 = [];
+      for (var i=0; i < str.length; i++) {
+        var charcode = str.charCodeAt(i);
+        if (charcode < 0x80) utf8.push(charcode);
+        else if (charcode < 0x800) {
+          utf8.push(0xc0 | (charcode >> 6),
+              0x80 | (charcode & 0x3f));
+        }
+        else if (charcode < 0xd800 || charcode >= 0xe000) {
+          utf8.push(0xe0 | (charcode >> 12),
+              0x80 | ((charcode>>6) & 0x3f),
+              0x80 | (charcode & 0x3f));
+        }
+        // surrogate pair
+        else {
+          i++;
+          // UTF-16 encodes 0x10000-0x10FFFF by
+          // subtracting 0x10000 and splitting the
+          // 20 bits of 0x0-0xFFFFF into two halves
+          charcode = 0x10000 + (((charcode & 0x3ff)<<10)
+            | (str.charCodeAt(i) & 0x3ff));
+          utf8.push(0xf0 | (charcode >>18),
+              0x80 | ((charcode>>12) & 0x3f),
+              0x80 | ((charcode>>6) & 0x3f),
+              0x80 | (charcode & 0x3f));
+        }
+      }
+      return utf8;
+    }
+    return toUTF8Array(s);
+  };
+
+}();
+
+(function (factory) {
+  if (typeof define === 'function' && define.amd) {
+      define([], factory);
+  } else if (typeof exports === 'object') {
+      module.exports = factory();
+  }
+}(function () {
+    return qrcode;
+}));
+
+</script>
+<script>
+/* ---------- fondo: red neuronal ---------- */
+const nv=document.getElementById('net'),nc=nv.getContext('2d');let nodes=[];
+function nSize(){nv.width=innerWidth;nv.height=innerHeight;const n=Math.min(90,Math.floor(innerWidth*innerHeight/16000));
+  nodes=Array.from({length:n},()=>({x:Math.random()*nv.width,y:Math.random()*nv.height,vx:(Math.random()-.5)*.4,vy:(Math.random()-.5)*.4,r:Math.random()*2+1}))}
+nSize();addEventListener('resize',()=>{nSize();cf.width=innerWidth;cf.height=innerHeight});
+let mouse={x:-999,y:-999};addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY});
+(function draw(){nc.clearRect(0,0,nv.width,nv.height);
+  for(const p of nodes){p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>nv.width)p.vx*=-1;if(p.y<0||p.y>nv.height)p.vy*=-1}
+  for(let i=0;i<nodes.length;i++){const a=nodes[i];
+    for(let j=i+1;j<nodes.length;j++){const b=nodes[j],d=Math.hypot(a.x-b.x,a.y-b.y);
+      if(d<140){nc.strokeStyle=`rgba(167,139,250,${(1-d/140)*.35})`;nc.lineWidth=1;nc.beginPath();nc.moveTo(a.x,a.y);nc.lineTo(b.x,b.y);nc.stroke()}}
+    const dm=Math.hypot(a.x-mouse.x,a.y-mouse.y);
+    if(dm<180){nc.strokeStyle=`rgba(34,211,238,${(1-dm/180)*.6})`;nc.beginPath();nc.moveTo(a.x,a.y);nc.lineTo(mouse.x,mouse.y);nc.stroke()}
+    nc.fillStyle=i%7===0?'#f472b6':i%5===0?'#22d3ee':'#a78bfa';nc.beginPath();nc.arc(a.x,a.y,a.r,0,7);nc.fill()}
+  requestAnimationFrame(draw)})();
+
+/* ---------- navegación ---------- */
+const slides=[...document.querySelectorAll('.slide')];let cur=0;
+const colors={Inicio:'var(--cyan)',Desarrollo:'var(--violet)','Práctica':'var(--yellow)',Cierre:'var(--green)'};
+const mins={Inicio:'4 min',Desarrollo:'8 min','Práctica':'9 min',Cierre:'4 min'};
+const exSpans=[...document.querySelectorAll('#example span')];let exIdx=0;
+function show(i){if(document.activeElement)document.activeElement.blur();
+  slides.forEach((s,k)=>{s.classList.toggle('active',k===i);s.classList.toggle('prev',k<i)});
+  cur=i;const m=slides[i].dataset.m,mo=document.getElementById('moment');
+  mo.textContent=m+' · '+mins[m];mo.style.color=colors[m];
+  document.getElementById('count').textContent=(i+1)+' / '+slides.length;
+  document.getElementById('bar').style.width=((i+1)/slides.length*100)+'%';
+  onEnter(i);
+}
+function go(d){
+  if(slides[cur].querySelector('#example')&&d>0&&exIdx<exSpans.length){exSpans[exIdx++].classList.add('on');return}
+  const n=cur+d;if(n>=0&&n<slides.length)show(n);
+}
+addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'){if(e.key==='Escape')e.target.blur();if(!['PageDown','PageUp'].includes(e.key))return}
+  if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();go(1)}
+  if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();go(-1)}
+  if(e.key==='f'||e.key==='F')fs();
+  if(e.key==='Home')show(0);if(e.key==='End')show(slides.length-1);
+});
+function fs(){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen().catch(()=>{})}
+
+/* ---------- cronómetro ---------- */
+let cs=0,crun=false;const clk=document.getElementById('clock');
+clk.onclick=()=>{crun=!crun;clk.classList.toggle('run',crun)};
+setInterval(()=>{if(crun){cs++;clk.textContent='⏱ '+String(cs/60|0).padStart(2,'0')+':'+String(cs%60).padStart(2,'0');if(cs>=1500)clk.style.color='var(--red)'}},1000);
+
+/* ---------- al entrar ---------- */
+let typed=false;
+function onEnter(i){
+  if(i===0&&!typed){typed=true;typeInto(document.getElementById('typing'),'Hola 👋 Soy tu asistente de IA. Hoy aprenderás a integrarme en tu día a día para que te ayude de verdad.',38)}
+  if(i===slides.length-1)confetti(220);
+  if(slides[i].querySelector('#live'))LQ.enter();
+}
+function typeInto(el,t,speed,done){const ch=[...t];let k=0;el.textContent='';const iv=setInterval(()=>{el.textContent+=ch[k++];if(k>=ch.length){clearInterval(iv);done&&done()}},speed)}
+
+/* ---------- encuesta ---------- */
+const votes={Si:0,No:0};
+function vote(k){if(k==='reset'){votes.Si=votes.No=0}else votes[k]++;
+  const mx=Math.max(votes.Si,votes.No,1);
+  ['Si','No'].forEach(x=>{document.getElementById('n'+x).textContent=votes[x];document.getElementById('b'+x).style.height=(4+votes[x]/mx*180)+'px'})}
+
+/* ---------- tarjetas ---------- */
+document.querySelectorAll('.flip').forEach(f=>f.onclick=()=>f.classList.toggle('on'));
+
+/* ---------- demo de chats ---------- */
+const answers={A:'¡Claro! Aquí tienes un mensaje:\n"Estimados padres: les escribimos para informarles sobre algunos temas importantes. Por favor, estén atentos. Gracias."',
+  B:'"Buenas tardes, queridos padres 😊 Les recordamos que este viernes a las 4:00 p. m. tendremos la reunión para conversar sobre las notas de sus hijos. ¡Su presencia es muy importante! Gracias."'};
+let chatting=false;
+function runChats(){if(chatting)return;chatting=true;
+  ['A','B'].forEach((k,idx)=>{const box=document.getElementById('chat'+k),ai=box.querySelector('.ai'),v=box.querySelector('.verdict');
+    v.classList.remove('on');ai.innerHTML='<span class="dots"><span></span><span></span><span></span></span>';
+    setTimeout(()=>typeInto(ai,answers[k],18,()=>{v.classList.add('on');if(k==='B'){chatting=false;confetti(60)}}),1200+idx*400)})}
+
+/* ---------- constructor ---------- */
+const examples=[
+  ['Actúa como un maestro creativo de secundaria.','Crea una dinámica de 5 minutos para iniciar la clase','sobre el cuidado del medio ambiente, para estudiantes de 14 años,','con los pasos numerados y los materiales necesarios.'],
+  ['Actúa como un nutricionista.','Crea un menú de almuerzos para 5 días','económico, para una familia de 4 personas con niños,','en una tabla con el plato y los ingredientes.'],
+  ['Actúa como un asistente administrativo.','Redacta un correo para solicitar un día libre','a mi supervisor, el lunes 15, por una cita médica,','con tono formal y en menos de 6 líneas.']];
+const colorsF={R:'var(--R)',T:'var(--T)',C:'var(--C)',F:'var(--F)'},bgF={R:'rgba(244,114,182,.15)',T:'rgba(34,211,238,.13)',C:'rgba(250,204,21,.12)',F:'rgba(74,222,128,.12)'};
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
+document.querySelectorAll('[data-builder]').forEach(b=>{
+  const ins=[...b.querySelectorAll('input[data-f]')],out=b.querySelector('.out'),fill=b.querySelector('.qfill'),lab=b.querySelector('.qlabel');let party=false;
+  function upd(){const filled=ins.filter(i=>i.value.trim());
+    if(!filled.length){out.innerHTML='<span class="ph">'+(out.dataset.ph||'Llena los campos y mira cómo se arma tu instrucción…')+'</span>';fill.style.width='0';lab.textContent='—';lab.style.color='';return}
+    out.innerHTML=filled.map(i=>`<span style="color:${colorsF[i.dataset.f]};background:${bgF[i.dataset.f]}">${esc(i.value.trim())}</span>`).join(' ');
+    const n=filled.length,L=[['',''],['Muy vago 😕','var(--red)'],['Mejorando 🙂','var(--orange)'],['¡Casi! 😃','var(--yellow)'],['¡Prompt perfecto! 🤩','var(--green)']][n];
+    fill.style.width=(n*25)+'%';fill.style.background=L[1];fill.style.boxShadow='0 0 14px '+L[1];lab.textContent=L[0];lab.style.color=L[1];
+    if(n===4&&!party){party=true;confetti(70)}if(n<4)party=false}
+  ins.forEach(i=>i.addEventListener('input',upd));
+  b.querySelectorAll('[data-ex]').forEach(btn=>btn.onclick=()=>{const ex=examples[+btn.dataset.ex];ins.forEach(i=>i.value='');party=false;upd();
+    let k=0;const step=()=>{if(k>=4)return;typeFill(ins[k],ex[k],()=>{k++;step()})};step()});
+  const cl=b.querySelector('[data-clear]');if(cl)cl.onclick=()=>{ins.forEach(i=>i.value='');upd()};
+  b.querySelector('[data-copy]').onclick=()=>{const t=ins.map(i=>i.value.trim()).filter(Boolean).join(' ');if(!t)return;
+    (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).catch(()=>{const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand('copy')}catch(e){}ta.remove()}).finally(()=>{const to=document.getElementById('toast');to.classList.add('on');setTimeout(()=>to.classList.remove('on'),1800)})};
+  function typeFill(inp,t,done){let k=0;const iv=setInterval(()=>{inp.value=t.slice(0,++k);inp.dispatchEvent(new Event('input'));if(k>=t.length){clearInterval(iv);done()}},22)}
+});
+
+/* ---------- clasificar ---------- */
+const items=[['"Hazme un correo."',0,'No dice para quién, sobre qué ni con qué tono.'],
+ ['"Actúa como maestro de primaria. Escribe un mensaje amable para los padres recordando la reunión del viernes a las 4:00 p. m. Máximo 5 líneas."',1,'Tiene rol, tarea, contexto y formato.'],
+ ['"Dime cosas de historia."',0,'Tema demasiado amplio y sin propósito.'],
+ ['"Resume este texto en 5 puntos sencillos para estudiantes de 12 años."',1,'Indica la tarea, para quién es y el formato.'],
+ ['"Ayúdame con la clase."',0,'No explica qué clase ni qué tipo de ayuda.'],
+ ['"Crea un menú de almuerzos económicos para 5 días, para una familia de 4, en una tabla."',1,'Tarea concreta, con contexto y formato.']];
+let hits=0;const cg=document.getElementById('classGrid');
+items.forEach(([pw,ok,why])=>{const d=document.createElement('div');d.className='panel cl';
+  d.innerHTML=`<div class="pw">${pw}</div><div><div class="ops"><button class="b-weak">Vaga</button><button class="b-strong">Clara</button></div><div class="why"></div></div>`;
+  d.querySelectorAll('button').forEach((b,i)=>b.onclick=()=>{if(d.dataset.done)return;d.dataset.done=1;const right=(i===ok);
+    d.classList.add(right?'right':'wrong');d.querySelector('.why').innerHTML=(right?'✅ ':'❌ Es <b>'+(ok?'clara':'vaga')+'</b>. ')+why;
+    if(right){hits++;burst(b)}document.getElementById('score').textContent='Aciertos: '+hits+' / 6';
+    if(document.querySelectorAll('.cl[data-done]').length===6)confetti(120)});
+  cg.appendChild(d)});
+
+/* ---------- temporizador ---------- */
+const timer={t:180,run:false,iv:null,
+  toggle(){this.run=!this.run;document.getElementById('tBtn').textContent=this.run?'⏸ Pausar':'▶ Seguir';
+    if(this.run)this.iv=setInterval(()=>{if(this.t>0){this.t--;this.draw()}else{clearInterval(this.iv);this.run=false;document.getElementById('tBtn').textContent='⏰ ¡Tiempo!';confetti(60)}},1000);else clearInterval(this.iv)},
+  reset(){clearInterval(this.iv);this.run=false;this.t=180;this.draw();document.getElementById('tBtn').textContent='▶ Iniciar'},
+  draw(){document.getElementById('ringT').textContent=(this.t/60|0)+':'+String(this.t%60).padStart(2,'0');document.getElementById('ringC').style.strokeDashoffset=452*(1-this.t/180);
+    document.getElementById('ringT').style.color=this.t<=30?'var(--red)':'var(--text)'}};
+
+/* ---------- quiz ---------- */
+const Q=[['¿Qué significa la R en la fórmula RTCF?',['Respuesta','Rol','Rápido','Revisar'],1],
+  ['¿Qué debes hacer con la respuesta que te da la IA?',['Copiarla tal cual','Creerla siempre','Revisarla y verificarla','Borrarla'],2],
+  ['¿Cuál de estos datos NO debes compartir con una IA?',['El tema de tu clase','Tus contraseñas y datos personales','El grado de tus estudiantes','El formato que quieres'],1]];
+let qi=0,qs=0;
+function renderQ(){const[q,o,a]=Q[qi];document.getElementById('qn').textContent='Pregunta '+(qi+1)+' de '+Q.length;document.getElementById('qq').textContent=q;
+  const box=document.getElementById('opts');box.innerHTML='';
+  o.forEach((t,i)=>{const b=document.createElement('button');b.className='opt';b.textContent=t;b.onclick=()=>{
+    if(box.dataset.done)return;box.dataset.done=1;
+    if(i===a){b.classList.add('ok');qs++;burst(b)}else{b.classList.add('bad');box.children[a].classList.add('ok')}
+    setTimeout(()=>{delete box.dataset.done;qi++;if(qi<Q.length)renderQ();else{document.getElementById('qq').textContent='🏆 ¡Terminaste!';box.innerHTML='';
+      document.getElementById('qscore').innerHTML='Puntaje del grupo: '+qs+' / '+Q.length+' <br><button class="btn" style="margin-top:16px" onclick="qi=0;qs=0;document.getElementById(\'qscore\').textContent=\'\';renderQ()">↺ Repetir</button>';confetti(180)}},1700)};
+    box.appendChild(b)})}
+renderQ();
+
+/* ---------- emojis ---------- */
+document.querySelectorAll('.fb').forEach(b=>b.onclick=()=>{const s=b.querySelector('span');s.textContent=+s.textContent+1;
+  for(let k=0;k<4;k++){const p=document.createElement('div');p.className='pop';p.textContent=b.dataset.e;const r=b.getBoundingClientRect();
+    p.style.left=(r.left+r.width/2-20+(Math.random()*80-40))+'px';p.style.top=(r.top)+'px';p.style.animationDelay=(k*.1)+'s';document.body.appendChild(p);setTimeout(()=>p.remove(),1800)}});
+
+/* ---------- confeti ---------- */
+const cf=document.getElementById('confetti'),cx=cf.getContext('2d');cf.width=innerWidth;cf.height=innerHeight;let parts=[],anim=false;
+function confetti(n,x,y){const C=['#22d3ee','#a78bfa','#4ade80','#facc15','#f472b6'];
+  for(let i=0;i<n;i++)parts.push({x:x??Math.random()*cf.width,y:y??-20,vx:(Math.random()-.5)*(x?14:6),vy:x?(Math.random()-1)*12:Math.random()*3+2,s:Math.random()*8+4,c:C[i%5],r:Math.random()*6,vr:(Math.random()-.5)*.3,life:220});
+  if(!anim)loop()}
+function burst(el){const r=el.getBoundingClientRect();confetti(40,r.left+r.width/2,r.top+r.height/2)}
+function loop(){anim=true;cx.clearRect(0,0,cf.width,cf.height);
+  parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.15;p.r+=p.vr;p.life--;cx.save();cx.translate(p.x,p.y);cx.rotate(p.r);cx.fillStyle=p.c;cx.fillRect(-p.s/2,-p.s/4,p.s,p.s/2);cx.restore()});
+  parts=parts.filter(p=>p.life>0&&p.y<cf.height+40);
+  if(parts.length)requestAnimationFrame(loop);else{anim=false;cx.clearRect(0,0,cf.width,cf.height)}}
+
+
+/* ---------- quiz en vivo ---------- */
+const LQ=(function(){
+  const C=window.QUIZ;if(!C)return{start(){},reset(){},reveal(){},next(){}};
+  const RELAY=(new URLSearchParams(location.search).get('relay'))||C.relay;
+  const H=C.topic+'-h',A=C.topic+'-a',$=id=>document.getElementById(id);
+  let sid=null,players={},answers={},scores={},qi=-1,timer=null,left=0,es=null,state='off';
+  const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  function pub(o){o.sid=sid;return fetch(RELAY+'/'+H,{method:'POST',body:JSON.stringify(o)}).catch(()=>{$('lvMsg').textContent='⚠️ Sin conexión con el servicio del quiz.'})}
+  function joinUrl(){if(location.protocol.startsWith('http')){const u=new URL('jugar.html',location.href);const r=new URLSearchParams(location.search).get('relay');if(r)u.searchParams.set('relay',r);return u.href}return null}
+  function drawQr(){const u=joinUrl();if(!u){$('lvUrl').textContent='(se mostrará al publicar la presentación)';return}
+    const q=qrcode(0,'M');q.addData(u);q.make();$('lvQr').innerHTML=q.createSvgTag({cellSize:8,margin:1,scalable:true});$('lvUrl').textContent=u.replace(/^https?:\/\//,'')}
+  function listen(){if(es)es.close();es=new EventSource(RELAY+'/'+A+'/sse?since='+Math.floor(Date.now()/1000-5));
+    es.onmessage=ev=>{try{const m=JSON.parse(ev.data);if(m.event&&m.event!=='message')return;on(JSON.parse(m.message))}catch(e){}};
+    es.onerror=()=>{$('lvMsg').textContent='Reconectando…'};es.onopen=()=>{$('lvMsg').textContent='🟢 Conectado. Esperando participantes…'}}
+  function on(m){
+    if(m.t==='j'){if(m.sid&&m.sid!==sid)return;if(!players[m.id]){players[m.id]=m.name;scores[m.id]=scores[m.id]||0;renderPlayers()}}
+    if(m.t==='a'){if(m.sid!==sid||m.i!==qi||state!=='q')return;if(!players[m.id]){players[m.id]=m.name;scores[m.id]=0}
+      if(answers[m.id]!==undefined)return;answers[m.id]={c:m.c,ms:m.ms};const n=Object.keys(answers).length;$('lvAns').textContent=n;
+      if(n>=Object.keys(players).length&&n>0)setTimeout(reveal,600)}
+  }
+  function renderPlayers(){const ids=Object.keys(players);$('lvN').textContent=ids.length;$('lvTot').textContent=ids.length;
+    $('lvNames').innerHTML=ids.map(i=>'<span>'+esc(players[i])+'</span>').join('')}
+  function view(v){$('lvLobby').style.display=v==='lobby'?'block':'none';$('lvGame').style.display=v==='game'?'flex':'none';$('lvEnd').style.display=v==='end'?'flex':'none'}
+  function reset(){clearInterval(timer);sid=Math.random().toString(36).slice(2,8);players={};answers={};scores={};qi=-1;state='lobby';renderPlayers();view('lobby');drawQr();listen();pub({t:'lobby'})}
+  function enter(){if(state==='off')reset()}
+  function start(){if(!Object.keys(players).length&&!confirmNoPlayers())return;qi=-1;next()}
+  function confirmNoPlayers(){$('lvMsg').textContent='Aún no hay participantes. Pulsa "Iniciar quiz" otra vez para empezar de todos modos.';if(confirmNoPlayers.armed){confirmNoPlayers.armed=false;return true}confirmNoPlayers.armed=true;return false}
+  function next(){qi++;if(qi>=C.questions.length)return end();answers={};state='q';const q=C.questions[qi];view('game');
+    $('lvNum').textContent='Pregunta '+(qi+1)+' / '+C.questions.length;$('lvQ').textContent=q.q;$('lvAns').textContent='0';$('lvTop').innerHTML='';
+    $('lvOpts').innerHTML=q.a.map((t,k)=>'<div class="lo lo'+k+'"><span class="sh"></span><span>'+esc(t)+'</span><span class="cnt"></span><i class="fillb"></i></div>').join('');
+    $('lvReveal').style.display='';$('lvNext').style.display='none';
+    left=C.duration;$('lvTime').textContent=left;clearInterval(timer);
+    timer=setInterval(()=>{left--;$('lvTime').textContent=Math.max(0,left);$('lvTime').style.borderColor=left<=5?'var(--red)':'var(--violet)';if(left<=0)reveal()},1000);
+    pub({t:'q',i:qi,dur:C.duration,at:Date.now()})}
+  function reveal(){if(state!=='q')return;state='r';clearInterval(timer);const q=C.questions[qi];const counts=[0,0,0,0],pts={};
+    for(const id in answers){const a=answers[id];counts[a.c]++;if(a.c===q.ok){const p=Math.max(500,Math.round(1000*(1-(a.ms/1000)/(C.duration*2))));pts[id]=p;scores[id]=(scores[id]||0)+p}}
+    const tot=Math.max(1,Object.keys(answers).length);
+    document.querySelectorAll('#lvOpts .lo').forEach((el,k)=>{el.querySelector('.cnt').textContent=counts[k];el.querySelector('.fillb').style.width=(counts[k]/tot*100)+'%';el.classList.add(k===q.ok?'win':'dim')});
+    const rank=Object.keys(players).sort((a,b)=>(scores[b]||0)-(scores[a]||0));
+    $('lvTop').innerHTML=rank.slice(0,5).map((id,i)=>'<div>'+['🥇','🥈','🥉','4.','5.'][i]+' '+esc(players[id])+' <b>'+(scores[id]||0)+'</b></div>').join('');
+    $('lvReveal').style.display='none';$('lvNext').style.display='';$('lvNext').textContent=qi===C.questions.length-1?'Ver podio 🏆':'Siguiente ▶';
+    if(counts[q.ok]>0)confetti(50);
+    const sc={};rank.forEach(id=>sc[id]=scores[id]||0);pub({t:'reveal',i:qi,pts,scores:sc,rank})}
+  function end(){state='end';clearInterval(timer);view('end');const rank=Object.keys(players).sort((a,b)=>(scores[b]||0)-(scores[a]||0));
+    const order=[1,0,2],hs=[170,230,130],cols=['#cbd5e1','#facc15','#fb923c'],md=['🥈','🥇','🥉'];
+    $('lvPod').innerHTML=order.map((p,k)=>rank[p]?'<div class="pod"><div class="nm">'+esc(players[rank[p]])+'</div><div class="pt">'+(scores[rank[p]]||0)+' pts</div><div class="bar" style="height:'+hs[k]+'px;background:'+cols[k]+';animation-delay:'+(k*.25)+'s">'+md[k]+'</div></div>':'').join('');
+    $('lvRest').innerHTML=rank.slice(3,10).map((id,i)=>'<div>'+(i+4)+'. '+esc(players[id])+' <b>'+(scores[id]||0)+'</b></div>').join('');
+    confetti(250);const sc={};rank.forEach(id=>sc[id]=scores[id]||0);pub({t:'end',scores:sc,rank})}
+  return{enter,start,reset,reveal,next};
+})();
+
+show(0);
+</script>
+</body>
+</html>
