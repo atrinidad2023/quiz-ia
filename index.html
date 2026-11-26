@@ -518,7 +518,26 @@ canvas#confetti{position:fixed;inset:0;z-index:40;pointer-events:none}
 <div id="nav"><button onclick="go(-1)" aria-label="Anterior">‹</button><button onclick="go(1)" aria-label="Siguiente">›</button><button onclick="fs()" aria-label="Pantalla completa">⛶</button></div>
 <div id="bar"></div>
 
-<script src="quiz-config.js"></script>
+<script>
+/* Configuración del quiz en vivo (la usan la presentación y la página de los participantes) */
+window.QUIZ = {
+  relay: 'https://ntfy.sh',              // servicio gratuito de mensajes en tiempo real
+  topic: 'saca-provecho-ia-q7m2xk94',    // canal privado de esta clase (no lo cambies)
+  duration: 20,                          // segundos por pregunta
+  questions: [
+    { q: '¿Qué significa la R en la fórmula RTCF?', a: ['Respuesta', 'Rol', 'Rápido', 'Revisar'], ok: 1 },
+    { q: '¿Y qué significa la F?', a: ['Fecha', 'Final', 'Formato', 'Fuente'], ok: 2 },
+    { q: '¿Cuál de estas instrucciones es más clara?', a: ['Hazme un correo', 'Ayúdame con algo', 'Correo formal a mi jefe pidiendo el viernes libre, en 5 líneas', 'Dime cosas'], ok: 2 },
+    { q: '¿Cuál de estas herramientas es un asistente de IA?', a: ['Excel', 'Gemini', 'Paint', 'Zoom'], ok: 1 },
+    { q: '"Para estudiantes de 5.º grado" es la parte de la fórmula llamada…', a: ['Rol', 'Tarea', 'Contexto', 'Formato'], ok: 2 },
+    { q: '¿Qué debes hacer con la respuesta que te da la IA?', a: ['Copiarla tal cual', 'Revisarla y verificarla', 'Creerla siempre', 'Ignorarla'], ok: 1 },
+    { q: '¿Qué dato NUNCA debes compartir con una IA?', a: ['El tema de tu clase', 'El grado de tus estudiantes', 'Tus contraseñas', 'El formato que quieres'], ok: 2 },
+    { q: '¿La IA reemplaza tu criterio profesional?', a: ['Sí, siempre', 'No, la IA ayuda y tú decides', 'Solo en el trabajo', 'Depende del día'], ok: 1 }
+  ]
+};
+
+window.QUIZ.publicJoin='https://atrinidad2023.github.io/quiz-ia/jugar.html';
+</script>
 <script>
 /* qrcode-generator 1.4.4 · (c) Kazuhiko Arase · MIT License */
 //---------------------------------------------------------------------
@@ -2983,7 +3002,7 @@ const LQ=(function(){
   let sid=null,players={},answers={},scores={},qi=-1,timer=null,left=0,es=null,state='off';
   const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   function pub(o){o.sid=sid;return fetch(RELAY+'/'+H,{method:'POST',body:JSON.stringify(o)}).catch(()=>{$('lvMsg').textContent='⚠️ Sin conexión con el servicio del quiz.'})}
-  function joinUrl(){if(location.protocol.startsWith('http')){const u=new URL('jugar.html',location.href);const r=new URLSearchParams(location.search).get('relay');if(r)u.searchParams.set('relay',r);return u.href}return null}
+  function joinUrl(){const r0=new URLSearchParams(location.search).get('relay');if(!r0&&C.publicJoin)return C.publicJoin;if(location.protocol.startsWith('http')){const u=new URL('jugar.html',location.href);const r=new URLSearchParams(location.search).get('relay');if(r)u.searchParams.set('relay',r);return u.href}return null}
   function drawQr(){const u=joinUrl();if(!u){$('lvUrl').textContent='(se mostrará al publicar la presentación)';return}
     const q=qrcode(0,'M');q.addData(u);q.make();$('lvQr').innerHTML=q.createSvgTag({cellSize:8,margin:1,scalable:true});$('lvUrl').textContent=u.replace(/^https?:\/\//,'')}
   function listen(){if(es)es.close();es=new EventSource(RELAY+'/'+A+'/sse?since='+Math.floor(Date.now()/1000-5));
